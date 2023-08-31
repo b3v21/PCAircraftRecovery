@@ -76,14 +76,21 @@ def airline_recovery_basic() -> None:
     )
 
     # Flight Scheduling Constraints
+    
+    # Every flight must be either flown using exactly one aircraft or must be cancelled
     fsc_1 = {f: m.addConstr(quicksum(x[t, f] for t in T_f[f]) + z[f] == 1) for f in F}
 
     # Sequencing & Fleet Size Constraints
+    
+    # Each non-cancelled flight has another flight after it operated by the same tail,
+    # unless it is the last flight in the recovery period operated by that tail
     sfsc_1 = {
         f: m.addConstr(quicksum(y[f, fd] for fd in CF_f[f]) + sigma[f] == 1 - z[f])
         for f in F
     }
 
+    # Each non-cancelled flight has another flight before it operated by the same tail,
+    # unless it is the first flight in the recovery period operated by that tail
     sfsc_2 = {
         fd: m.addConstr(
             quicksum(y[f, fd] for f in F if fd in CF_f[f]) + rho[fd] == 1 - z[fd]
@@ -91,6 +98,10 @@ def airline_recovery_basic() -> None:
         for fd in F
     }
 
+    # Consecutive flights operated by the same tail are assigned the same tail
+    
+    # Can't assign tail t to flight f and fly f & fd consecutively by tail t without
+    # assigning tail t to flight fd
     sfsc_3 = {
         (f, fd, t): m.addConstr(1 + x[t, fd] >= x[t, f] + y[f, fd])
         for f in F
@@ -98,6 +109,8 @@ def airline_recovery_basic() -> None:
         for t in list(set(T_f[f]).intersection(T_f[fd]))
     }
 
+    # Can't assign tail t to flight fd and fly f & fd consecutively by tail t without
+    # assigning tail t to flight f
     sfsc_4 = {
         (f, fd, t): m.addConstr(1 + x[t, f] <= x[t, fd] + y[f, fd])
         for f in F
@@ -105,12 +118,16 @@ def airline_recovery_basic() -> None:
         for t in list(set(T_f[f]).intersection(T_f[fd]))
     }
 
+    # If a flight is assigned a tail and it is the first flight in a sequence of flights,
+    # it must be the first flight of that tail
     sfsc_5 = {
         (t, f): m.addConstr(rho[f] + x[t, f] <= 1 + phi[t, f])
         for f in F
         for t in T_f[f]
     }
 
+    # A flight chosen to be the first flight in a sequence of flights can only be assigned
+    # to tails whose initial location matches the flight's departure airport
     sfsc_6 = {
         (t, k): m.addConstr(
             quicksum(phi[t, f] for f in list(set(F_t[t]).intersection(FD_k[k])))
@@ -120,13 +137,23 @@ def airline_recovery_basic() -> None:
         for k in K
     }
 
+    # NOTE: Sequencing & Fleet Size Constraints still allow for a tail to not be used
+    # at all during the recovery period
+
+
+
     # Passenger Flow Constraints
+
+    # All passengers are reassigned to some itinerary, which might be the same or different
+    # from their originally scheduled itinerary (this include a null itinerary if reassignment
+    # is not possible during the recovery period)
     pfc_1 = {
         (p, v): m.addConstr(quicksum(h[p, pd, v] for pd in CO_p[p]) == n[v][p])
         for p in range(len(P))
         for v in Y
     }
 
+    # Passengers can be reassigned only to non-disrupted itineraries
     pfc_2 = {
         (p, v, pd): m.addConstr(h[p, pd, v] <= (1 - lambd[pd]) * n[v][p])
         for p in range(len(P))
@@ -134,6 +161,8 @@ def airline_recovery_basic() -> None:
         for pd in CO_p[p]
     }
 
+    # The number of passengers that do show up for their reassigned itineraries does not exceed
+    # the total passenger capacity for their reassigned flight
     pfc_3 = {
         f: m.addConstr(
             quicksum(q[t] * x[t, f] for t in T_f[f])
@@ -149,7 +178,11 @@ def airline_recovery_basic() -> None:
         for f in F
     }
 
+
     # Airport slot constraints
+
+    # Start time of arrival slot asl is no later than the combined scheduled arrival time and
+    # arrival delay of flight f, only if the arrival slot is assigned to flight f.
     asc_1 = {
         (f, asl): m.addConstr(
             AA[asl][0] <= sta[f] + deltaA[f] + BIG_M * (1 - vA[asl, f])
@@ -158,6 +191,8 @@ def airline_recovery_basic() -> None:
         for asl in AAF[f]
     }
 
+    # End time of arrival slot asl is no earlier than the combined scheduled arrival time and
+    # arrival delay of flight f, only if the arrival slot is assigned to flight f.
     asc_2 = {
         (f, asl): m.addConstr(
             AA[asl][1] >= sta[f] + deltaA[f] - BIG_M * (1 - vA[asl, f])
@@ -166,15 +201,19 @@ def airline_recovery_basic() -> None:
         for asl in AAF[f]
     }
 
+    # Each non-cancelled flight is assigned exactly one arrival slot
     asc_3 = {
         f: m.addConstr(quicksum(vA[asl, f] for asl in AAF[f]) == 1 - z[f]) for f in F
     }
 
+    # Arrival slot capacity limit
     asc_4 = {
         asl: m.addConstr(quicksum(vA[asl, f] for f in FAA[asl]) <= scA[asl])
         for asl in range(len(AA))
     }
 
+    # Start time of departure slot asl is no later than the combined scheduled departure time and
+    # departure delay of flight f, only if the departure slot is assigned to flight f.
     asc_5 = {
         (f, dsl): m.addConstr(
             DA[dsl][0] <= std[f] + deltaD[f] + BIG_M * (1 - vD[dsl, f])
@@ -183,6 +222,8 @@ def airline_recovery_basic() -> None:
         for dsl in DAF[f]
     }
 
+    # End time of departure slot asl is no earlier than the combined scheduled departure time and
+    # departure delay of flight f, only if the departure slot is assigned to flight f.
     asc_6 = {
         (f, dsl): m.addConstr(
             DA[dsl][1] >= std[f] + deltaD[f] - BIG_M * (1 - vD[dsl, f])
@@ -191,10 +232,12 @@ def airline_recovery_basic() -> None:
         for dsl in DAF[f]
     }
 
+    # Each non-cancelled flight is assigned exactly one departure slot
     asc_7 = {
         f: m.addConstr(quicksum(vD[dsl, f] for dsl in DAF[f]) == 1 - z[f]) for f in F
     }
 
+    # Departure slot capacity limit
     asc_8 = {
         dsl: m.addConstr(quicksum(vD[dsl, f] for f in FDA[dsl]) <= scD[dsl])
         for dsl in range(len(DA))

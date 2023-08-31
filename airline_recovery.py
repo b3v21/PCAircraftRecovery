@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.testdata2 import *
+from data.testdata1 import *
 
 BIG_M = 999999999
 
@@ -76,12 +76,12 @@ def airline_recovery_basic() -> None:
     )
 
     # Flight Scheduling Constraints
-    
+
     # Every flight must be either flown using exactly one aircraft or must be cancelled
     fsc_1 = {f: m.addConstr(quicksum(x[t, f] for t in T_f[f]) + z[f] == 1) for f in F}
 
     # Sequencing & Fleet Size Constraints
-    
+
     # Each non-cancelled flight has another flight after it operated by the same tail,
     # unless it is the last flight in the recovery period operated by that tail
     sfsc_1 = {
@@ -99,7 +99,7 @@ def airline_recovery_basic() -> None:
     }
 
     # Consecutive flights operated by the same tail are assigned the same tail
-    
+
     # Can't assign tail t to flight f and fly f & fd consecutively by tail t without
     # assigning tail t to flight fd
     sfsc_3 = {
@@ -140,8 +140,6 @@ def airline_recovery_basic() -> None:
     # NOTE: Sequencing & Fleet Size Constraints still allow for a tail to not be used
     # at all during the recovery period
 
-
-
     # Passenger Flow Constraints
 
     # All passengers are reassigned to some itinerary, which might be the same or different
@@ -177,7 +175,6 @@ def airline_recovery_basic() -> None:
         )
         for f in F
     }
-
 
     # Airport slot constraints
 

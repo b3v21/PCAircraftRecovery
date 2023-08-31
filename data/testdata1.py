@@ -66,9 +66,7 @@ rc = [[(lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P] for pd in P]
 
 # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
 # zeta
-theta = [
-    [[[0 for _ in Y] for _ in range(len(P))] for _ in range(len(P))] for _ in Z
-]
+theta = [[[[0 for _ in Y] for _ in range(len(P))] for _ in range(len(P))] for _ in Z]
 
 # Starting location of planes (binary)
 tb = [[1, 0, 0], [1, 0, 0]]

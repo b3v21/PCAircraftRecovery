@@ -54,15 +54,15 @@ FAA = [[f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA]
 FDA = [[f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA]
 
 # set of flights compatible with tail T
-F_t = [list(T) for _ in T]  # Assume this is right for now
-
-# set of tails compatible with flight F
-T_f = []
+F_t = []  # Assume this is right for now
 for f in F:
     if f < 10:
-        T_f += [list(range(0, 20, 2))]
+        F_t += [list(range(0, 20, 2))]
     else:
-        T_f += [list(range(1, 20, 2))]
+        F_t += [list(range(1, 20, 2))]
+
+# set of tails compatible with flight F
+T_f = [[t for t in T if f in F_t[t]] for f in F]
 
 # Set of flights f which arrive to airport k
 flights = [f for f in F]
@@ -171,5 +171,5 @@ for t in T:
 print(len(tb))
 
 # Capacity of arrival and departure slots
-scA = [1 for _ in range(20)]
-scD = [1 for _ in range(20)]
+scA = [20 for _ in range(20)]
+scD = [20 for _ in range(20)]

@@ -1,7 +1,7 @@
 import random
 
-random.seed(5)
-num_flights = 100
+random.seed(3)
+num_flights = 80
 num_tails = 20
 num_airports = 8
 num_fare_classes = 2
@@ -55,7 +55,7 @@ FAA = [[f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA]
 FDA = [[f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA]
 
 # set of flights compatible with tail T
-F_t = [random.sample(F, random.randint(0, 5)) for _ in T]
+F_t = [random.sample(F, random.randint(0, 5)) for _ in T] # Assume this is right for now
 
 # set of tails compatible with flight F
 T_f = [[t for t in T if f in F_t[t]] for f in F]
@@ -67,7 +67,7 @@ AK_f = {}  # Airport that flight f arrives at (this isnt actually data in the pa
 
 while flights:
     for k in K:
-        sample = random.sample(flights, random.randint(0, min(8, len(flights))))
+        sample = random.sample(flights, 10) 
         FA_k[k] = sample
         for s in sample:
             AK_f[s] = k
@@ -85,9 +85,11 @@ for k in K:
             for i, _ in enumerate(p):
                 if p[i] == f:
                     FD_k[AK_f[p[i - 1]]].add(f)
+                    
+import pdb; pdb.set_trace()
 
 # Set of flights compatible with a connection from flight f
-CF_f = [[fd for fd in F if fd == AK_f[f] and fd != f] for f in F]
+CF_f = [[fd for fd in F if FD_k[fd] == FA_k[f] and fd != f] for f in F]
 
 # Subset of itineraries compatible with a reasignment from an original itinerary p.
 CO_p = [

@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.testdata1 import *
+from data.testdata2 import *
 
 BIG_M = 999999999
 
@@ -253,18 +253,18 @@ def airline_recovery_basic() -> None:
     for f in F:
         if z[f].x > 0.9:
             print(f"Flight {f} has been cancelled.")
+            
+    print("\nList of assigned departure slots:")
+    for f in F:
+        for dsl in range(len(DA)):
+            if vD[dsl, f].x > 0.9:
+                print(f"Flight {f} assigned to departure slot {DA[dsl]}")
 
     print("\nList of assigned arrival slots:")
     for f in F:
         for asl in range(len(AA)):
             if vA[asl, f].x > 0.9:
                 print(f"Flight {f} assigned to arrival slot {AA[asl]}")
-
-    print("\nList of assigned departure slots:")
-    for f in F:
-        for dsl in range(len(DA)):
-            if vD[dsl, f].x > 0.9:
-                print(f"Flight {f} assigned to departure slot {DA[dsl]}")
 
     print("\nDisrupted Itineraries:")
     for p in range(len(P)):

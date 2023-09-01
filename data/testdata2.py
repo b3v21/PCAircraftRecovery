@@ -1,16 +1,16 @@
 import random
 import numpy as np
 
-# T0: F0 (depart A0, arrive A1) -> F1 (depart A1, arrive A2)
-# T1: F2 (depart A0, arrive A1) -> F3 (depart A1, arrive A2)
-# T2: F4 (depart A0, arrive A1) -> F5 (depart A1, arrive A2)
-# T3: F6 (depart A0, arrive A1) -> F7 (depart A1, arrive A2)
-# T4: F8 (depart A0, arrive A1) -> F9 (depart A1, arrive A2)
-# T5: F10 (depart A0, arrive A1) -> F11 (depart A1, arrive A2)
-# T6: F12 (depart A0, arrive A1) -> F13 (depart A1, arrive A2)
-# T7: F14 (depart A0, arrive A1) -> F15 (depart A1, arrive A2)
-# T8: F16 (depart A0, arrive A1) -> F17 (depart A1, arrive A2)
-# T9: F18 (depart A0, arrive A1) -> F19 (depart A1, arrive A2)
+# T0: F0 (depart A0, arrive A1) -> T10: F1 (depart A1, arrive A2)
+# T1: F2 (depart A0, arrive A1) -> T11: F3 (depart A1, arrive A2)
+# T2: F4 (depart A0, arrive A1) -> T12: F5 (depart A1, arrive A2)
+# T3: F6 (depart A0, arrive A1) -> T13: F7 (depart A1, arrive A2)
+# T4: F8 (depart A0, arrive A1) -> T14: F9 (depart A1, arrive A2)
+# T5: F10 (depart A0, arrive A1) -> T15: F11 (depart A1, arrive A2)
+# T6: F12 (depart A0, arrive A1) -> T16: F13 (depart A1, arrive A2)
+# T7: F14 (depart A0, arrive A1) -> T17: F15 (depart A1, arrive A2)
+# T8: F16 (depart A0, arrive A1) -> T18: F17 (depart A1, arrive A2)
+# T9: F18 (depart A0, arrive A1) -> T19: F19 (depart A1, arrive A2)
 
 # Departures occuring every 0.5 hrs
 # Arrivals occuring every
@@ -147,7 +147,7 @@ dc = [100 for _ in F]
 n = [[50 for _ in P] for _ in Y]
 
 # Seating capacity of tail t in T
-q = [400 for _ in T]
+q = [100 for _ in T]
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = [[(lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P] for pd in P]

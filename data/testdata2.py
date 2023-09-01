@@ -144,10 +144,10 @@ dc = [100 for _ in F]
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = [[100 for _ in P] for _ in Y]
+n = [[50 for _ in P] for _ in Y]
 
 # Seating capacity of tail t in T
-q = [100 for _ in T]
+q = [400 for _ in T]
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = [[(lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P] for pd in P]
@@ -157,19 +157,19 @@ rc = [[(lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P] for pd in P]
 theta = [[[[0 for _ in Y] for _ in P] for _ in P] for _ in Z]
 
 # Starting location of planes (binary) ((for t) for k)
-even = [[1, 0, 0]]
-odd = [[0, 1, 0]]
+first = [[1, 0, 0]]
+second = [[0, 1, 0]]
 
 tb = []
 for t in T:
-    if t % 2 == 0:
-        tb += even
+    if t < 10:
+        tb += first
     else:
-        tb += odd
+        tb += second
 
 
 print(len(tb))
 
 # Capacity of arrival and departure slots
-scA = [20 for _ in range(20)]
-scD = [20 for _ in range(20)]
+scA = [1 for _ in range(20)]
+scD = [1 for _ in range(20)]

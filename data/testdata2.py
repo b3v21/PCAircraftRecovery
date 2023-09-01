@@ -114,9 +114,17 @@ for f in F:
 
 # Set of flights fd compatible with a connection from flight f
 # fd is compatible if it is scheduled to depart from the arrival airport of flight f
+# and the scheduled arrival of f is before the scheduled departure of fd
 CF_f = [
-    [fd for fd in F if AK_f[f] == departure_airport_of_f[fd] and fd != f] for f in F
+    [
+        fd for fd in F 
+        if AK_f[f] == departure_airport_of_f[fd] 
+        and sta[f] < std[fd]
+        and fd != f
+    ] for f in F
 ]
+
+import pdb; pdb.set_trace()
 
 # Subset of itineraries compatible with a reassignment from an original itinerary p.
 # itinary p is compatible for a reassignment with itinary pd if they both share the

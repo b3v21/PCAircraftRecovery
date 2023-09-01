@@ -3,26 +3,14 @@ import random
 random.seed(3)
 num_flights = 80
 num_tails = 20
-num_airports = 8
+num_airports = 4
 num_fare_classes = 2
 num_delay_levels = 2
 
 # Sets
 T = range(num_tails)
 F = range(num_flights)
-P = [
-    [0, 1],
-    [2, 3],
-    [5, 4, 6],
-    [7, 8],
-    [9, 10],
-    [15, 11],
-    [12, 13],
-    [14, 17, 16],
-    [18, 19],
-    [20],
-    [],
-]  # Set of itineraries
+P = [[i,i+1] for i in range(0,79,2)]  # Set of itineraries
 K = range(num_airports)
 Y = range(num_fare_classes)
 Z = range(num_delay_levels)
@@ -62,7 +50,7 @@ AK_f = {}  # Airport that flight f arrives at (this isnt actually data in the pa
 
 while flights:
     for k in K:
-        sample = random.sample(flights, 10)
+        sample = flights[:10]
         FA_k[k] = sample
         for s in sample:
             AK_f[s] = k
@@ -76,24 +64,45 @@ for k in K:
 for f in F:
     found = False
     if not found:
-        for p in P:                    
+        for p in P:
             if f not in p:
                 continue
             if f == p[0]:
-                FD_k[random.randint(0,7)].add(f)
+                FD_k[random.randint(0, num_airports-1)].add(f)
             else:
-                FD_k[AK_f[p[p.index(f)-1]]].add(f)
+                FD_k[AK_f[p[p.index(f) - 1]]].add(f)
             found = True
 
-import pdb; pdb.set_trace()
+departure_airport_of_f = {}
+for f in F:
+    departure_airport_of_f[f] = -1
 
-# Set of flights compatible with a connection from flight f
-CF_f = [[fd for fd in F if len(DK_f[fd].intersection(AK_f[f]))==1 and fd != f] for f in F]
+for f in F:
+    for k in K:
+        if f in FD_k[k]:
+            departure_airport_of_f[f] = k
 
-# Subset of itineraries compatible with a reasignment from an original itinerary p.
+# Set of flights fd compatible with a connection from flight f
+# fd is compatible if it is scheduled to depart from the arrival airport of flight f
+CF_f = [
+    [fd for fd in F if AK_f[f] == departure_airport_of_f[fd] and fd != f] for f in F
+]
+
+# Subset of itineraries compatible with a reassignment from an original itinerary p.
+# itinary p is compatible for a reassignment with itinary pd if they both share the
+# same start and end destination
+
 CO_p = [
-    [i for i, p in enumerate(P)] for p in P
-]  # This is a bit silly as currently any flight can be rescheduled to any flight
+    [
+        P.index(pd)
+        for pd in P
+        if pd != []
+        and departure_airport_of_f[pd[0]] == departure_airport_of_f[p[0]]
+        and AK_f[pd[-1]] == AK_f[p[-1]]
+    ]
+    for p in P
+    if p != []
+]
 
 # Data
 

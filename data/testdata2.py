@@ -13,7 +13,7 @@ import numpy as np
 # T9: F18 (depart A0, arrive A1) -> F19 (depart A1, arrive A2)
 
 # Departures occuring every 0.5 hrs
-# Arrivals occuring every 
+# Arrivals occuring every
 
 
 random.seed(3)
@@ -26,7 +26,7 @@ num_delay_levels = 2
 # Sets
 T = range(num_tails)
 F = range(num_flights)
-P = [[i,i+1] for i in range(0,num_flights,2)]  # Set of itineraries
+P = [[i, i + 1] for i in range(0, num_flights, 2)]  # Set of itineraries
 K = range(num_airports)
 Y = range(num_fare_classes)
 Z = range(num_delay_levels)
@@ -37,7 +37,7 @@ sta = [f + 1 for f in F]
 
 # Arrival and Depature slots
 DA = [(t, t + 1) for t in T]
-AA = [(t -0.5, t + 0.5) for t in range(1, num_tails+1)]
+AA = [(t - 0.5, t + 0.5) for t in range(1, num_tails + 1)]
 
 # Set of arrival and departure slots compatible with flight f
 AAF = [
@@ -60,9 +60,9 @@ F_t = [list(T) for _ in T]  # Assume this is right for now
 T_f = []
 for f in F:
     if f < 10:
-        T_f += [list(range(0,20,2))]
+        T_f += [list(range(0, 20, 2))]
     else:
-        T_f += [list(range(1,20,2))]
+        T_f += [list(range(1, 20, 2))]
 
 # Set of flights f which arrive to airport k
 flights = [f for f in F]
@@ -157,8 +157,8 @@ rc = [[(lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P] for pd in P]
 theta = [[[[0 for _ in Y] for _ in P] for _ in P] for _ in Z]
 
 # Starting location of planes (binary) ((for t) for k)
-even = [[1,0,0]]
-odd = [[0,1,0]]
+even = [[1, 0, 0]]
+odd = [[0, 1, 0]]
 
 tb = []
 for t in T:

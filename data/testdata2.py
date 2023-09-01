@@ -1,27 +1,43 @@
 import random
+import numpy as np
+
+# T0: F0 (depart A0, arrive A1) -> F1 (depart A1, arrive A2)
+# T1: F2 (depart A0, arrive A1) -> F3 (depart A1, arrive A2)
+# T2: F4 (depart A0, arrive A1) -> F5 (depart A1, arrive A2)
+# T3: F6 (depart A0, arrive A1) -> F7 (depart A1, arrive A2)
+# T4: F8 (depart A0, arrive A1) -> F9 (depart A1, arrive A2)
+# T5: F10 (depart A0, arrive A1) -> F11 (depart A1, arrive A2)
+# T6: F12 (depart A0, arrive A1) -> F13 (depart A1, arrive A2)
+# T7: F14 (depart A0, arrive A1) -> F15 (depart A1, arrive A2)
+# T8: F16 (depart A0, arrive A1) -> F17 (depart A1, arrive A2)
+# T9: F18 (depart A0, arrive A1) -> F19 (depart A1, arrive A2)
+
+# Departures occuring every 0.5 hrs
+# Arrivals occuring every 
+
 
 random.seed(3)
-num_flights = 80
+num_flights = 20
 num_tails = 20
-num_airports = 4
+num_airports = 3
 num_fare_classes = 2
 num_delay_levels = 2
 
 # Sets
 T = range(num_tails)
 F = range(num_flights)
-P = [[i,i+1] for i in range(0,79,2)]  # Set of itineraries
+P = [[i,i+1] for i in range(0,num_flights,2)]  # Set of itineraries
 K = range(num_airports)
 Y = range(num_fare_classes)
 Z = range(num_delay_levels)
 
 # Scheduled arrival (departure) time for flight f in F
 std = [f + 0.5 for f in F]
-sta = [f + 1.5 for f in F]
+sta = [f + 1 for f in F]
 
 # Arrival and Depature slots
 DA = [(t, t + 1) for t in T]
-AA = [(t, t + 1) for t in range(1, 21)]
+AA = [(t -0.5, t + 0.5) for t in range(1, num_tails+1)]
 
 # Set of arrival and departure slots compatible with flight f
 AAF = [
@@ -38,23 +54,31 @@ FAA = [[f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA]
 FDA = [[f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA]
 
 # set of flights compatible with tail T
-F_t = [list(range(0 + 4 * t, 4 + 4 * t)) for t in T]  # Assume this is right for now
+F_t = [list(T) for _ in T]  # Assume this is right for now
 
 # set of tails compatible with flight F
-T_f = [[t for t in T if f in F_t[t]] for f in F]
+T_f = []
+for f in F:
+    if f < 10:
+        T_f += [list(range(0,20,2))]
+    else:
+        T_f += [list(range(1,20,2))]
 
 # Set of flights f which arrive to airport k
 flights = [f for f in F]
 FA_k = {}
+for k in K:
+    FA_k[k] = set()
+
 AK_f = {}  # Airport that flight f arrives at (this isnt actually data in the paper)
 
-while flights:
-    for k in K:
-        sample = flights[:10]
-        FA_k[k] = sample
-        for s in sample:
-            AK_f[s] = k
-            flights.remove(s)
+for f in F:
+    if f % 2 == 0:
+        FA_k[1].add(f)
+        AK_f[f] = 1
+    else:
+        FA_k[2].add(f)
+        AK_f[f] = 2
 
 # Set of flights f which depart from airport k
 FD_k = {}
@@ -62,16 +86,22 @@ for k in K:
     FD_k[k] = set()
 
 for f in F:
-    found = False
-    if not found:
-        for p in P:
-            if f not in p:
-                continue
-            if f == p[0]:
-                FD_k[random.randint(0, num_airports-1)].add(f)
-            else:
-                FD_k[AK_f[p[p.index(f) - 1]]].add(f)
-            found = True
+    if f % 2 == 0:
+        FD_k[0].add(f)
+    else:
+        FD_k[1].add(f)
+
+# for f in F:
+#     found = False
+#     if not found:
+#         for p in P:
+#             if f not in p:
+#                 continue
+#             if f == p[0]:
+#                 FD_k[random.randint(0, num_airports-1)].add(f)
+#             else:
+#                 FD_k[AK_f[p[p.index(f) - 1]]].add(f)
+#             found = True
 
 departure_airport_of_f = {}
 for f in F:
@@ -107,14 +137,14 @@ CO_p = [
 # Data
 
 # Cost of operating flight f with tail t
-oc = [[random.randrange(0, 50, 5) for _ in F] for _ in T]
+oc = [[1 for _ in range(num_flights)] for _ in range(num_tails)]
 
 # Delay cost per minute of arrival delay of flight f
 dc = [100 for _ in F]
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = [[random.randint(50, 300) for _ in P] for _ in Y]
+n = [[100 for _ in P] for _ in Y]
 
 # Seating capacity of tail t in T
 q = [100 for _ in T]
@@ -127,9 +157,19 @@ rc = [[(lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P] for pd in P]
 theta = [[[[0 for _ in Y] for _ in P] for _ in P] for _ in Z]
 
 # Starting location of planes (binary) ((for t) for k)
-tb = [random.sample([1] + [0 for _ in range(len(K) - 1)], len(K)) for _ in T]
+even = [[1,0,0]]
+odd = [[0,1,0]]
+
+tb = []
+for t in T:
+    if t % 2 == 0:
+        tb += even
+    else:
+        tb += odd
+
+
 print(len(tb))
 
 # Capacity of arrival and departure slots
-scA = [1 for _ in range(300)]
-scD = [1 for _ in range(300)]
+scA = [1 for _ in range(20)]
+scD = [1 for _ in range(20)]

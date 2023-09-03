@@ -37,21 +37,21 @@ AA = [[5, 7], [6, 8], [12, 14], [13, 14]]
 DA = [[0, 2], [1, 3], [9, 10], [10, 11]]
 
 # Set of arrival and departure slots compatible with flight f
-AAF = [[0, 1], [0, 1], [2, 3], [2, 3]]
-DAF = [[0, 1], [0, 1], [2], [3]]
+AAF = [[0], [1], [2], [3]]
+DAF = [[0], [1], [2], [3]]
 
 # Set of flights compatible with arrive/departure slot asl/dsl
-FAA = [[0, 1], [0, 1], [2, 3], [2, 3]]
-FDA = [[0, 1], [0, 1], [2], [3]]
+FAA = [[0], [1], [2], [3]]
+FDA = [[0], [1], [2], [3]]
 
 # set of flights compatible with tail T
-F_t = [[0, 2], [1,3], [0,2], [1,3]]
+F_t = [[0, 2], [0, 2], [1, 3], [1, 3]]
 
 # set of tails compatible with flight F
-T_f = [[0,2], [1,3], [0,2], [1,3]]
+T_f = [[0, 1], [2, 3], [0, 1], [2, 3]]
 
 # Set of flights compatible with a connection from flight f
-CF_f = [[1], [], [3], []]
+CF_f = [[1, 3], [], [1, 3], []]
 
 # Set of flights f which arrive to airport k
 FA_k = [[], [0, 2], [1, 3]]
@@ -85,8 +85,11 @@ rc = [[(lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P] for pd in P]
 theta = [[[[0 for _ in Y] for _ in range(len(P))] for _ in range(len(P))] for _ in Z]
 
 # Starting location of planes (binary)
-tb = [[1, 0, 0], [0,1,0], [1, 0, 0], [0,1,0]]
+tb = [[1, 0, 0], [0, 1, 0], [1, 0, 0], [0, 1, 0]]
 
 # Capacity of arrival and departure slots
-scA = [1, 1, 1, 1]
-scD = [1, 1, 1, 1]
+scA = [2, 2, 2, 2]
+scD = [2, 2, 2, 2]
+
+# Scheduled buffer time for each flight (set to 0 for now)
+sb = [0 for _ in num_flights]

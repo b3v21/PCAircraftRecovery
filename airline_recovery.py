@@ -55,6 +55,7 @@ def airline_recovery_basic() -> None:
     deltaD = {f: m.addVar() for f in F}
     vA = {(asl, f): m.addVar(vtype=GRB.BINARY) for f in F for asl in range(len(AA))}
     vD = {(dsl, f): m.addVar(vtype=GRB.BINARY) for f in F for dsl in range(len(DA))}
+    gamma = {f: m.addVar() for f in F}
 
     # Objective (currently just operating cost and reassignment cost)
     m.setObjective(
@@ -109,10 +110,8 @@ def airline_recovery_basic() -> None:
         for t in list(set(T_f[f]).intersection(T_f[fd]))
     }
 
-    # Can't assign tail t to flight fd and fly f & fd consecutively by tail t without
-    # assigning tail t to flight f
     sfsc_4 = {
-        (f, fd, t): m.addConstr(1 + x[t, f] <= x[t, fd] + y[f, fd])
+        (f, fd, t): m.addConstr(1 + x[t, f] >= x[t, fd] + y[f, fd])
         for f in F
         for fd in CF_f[f]
         for t in list(set(T_f[f]).intersection(T_f[fd]))
@@ -240,6 +239,24 @@ def airline_recovery_basic() -> None:
         for dsl in range(len(DA))
     }
 
+    # Flight Delay Constraints
+
+    # relate the departure and arrival delays of each flight via delay absorption through
+    # increased cruise speed.
+    fdc_1 = {f: m.addConstr(deltaA[f] >= deltaD[f] - gamma[f] - sb[f]) for f in F}
+
+    # relate the arrival delay of one flight to the departure delay of the next flight
+    # operated by the same tail, by accounting for delay propagation.
+
+    fdc_2 = {
+        (f, fd, t): m.addConstr(
+            deltaD[fd]>=deltaA[f]+mtt[f][fd][t]-ct[f][fd]-BIG_M*(3-x[t,f]-x[t,fd]-y[f,fd])
+        )
+        for f in F
+        for fd in CF_f[f]
+        for t in list(set(T_f[f]).intersection(T_f[fd]))
+    }
+
     m.optimize()
 
     # Generate an output:
@@ -253,7 +270,7 @@ def airline_recovery_basic() -> None:
     for f in F:
         if z[f].x > 0.9:
             print(f"Flight {f} has been cancelled.")
-            
+
     print("\nList of assigned departure slots:")
     for f in F:
         for dsl in range(len(DA)):
@@ -285,9 +302,16 @@ def airline_recovery_basic() -> None:
 
     print("\nFirst Flights")
     for f in F:
-        for t in T:
-            if phi[t, f].x > 0.9:
-                print(f"Flight {f} with tail {t} is the first flight.")
+        if rho[f].x > 0.9:
+            print(f"Flight {f} is the first flight.")
+
+    # print("\nSUS CONSTRAINTS:")
+    # for f in F:
+    #     for fd in CF_f[f]:
+    #         for t in list(set(T_f[f]).intersection(T_f[fd])):
+    #             import pdb; pdb.set_trace()
+    #             print("1. 1+x[t,fd] >= x[t,f] + y[f,fd], 2. 1+x[t,f] >= x[t,fd] + y[f,fd]")
+    #             print(f"1. 1+{x[t,fd].x}>={x[t,f].x}+{y[f,fd].x}, 2. {1}+{x[t,f].x}<= {x[t,fd].x}+{y[f,fd].x}")
 
     return
 

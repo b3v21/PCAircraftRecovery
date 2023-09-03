@@ -1,4 +1,3 @@
-import random
 import numpy as np
 
 # T0: F0 (depart A0, arrive A1) -> T10: F1 (depart A1, arrive A2)
@@ -15,10 +14,8 @@ import numpy as np
 # Departures occuring every 0.5 hrs
 # Arrivals occuring every
 
-
-random.seed(3)
-num_flights = 20
-num_tails = 20
+num_flights = 4
+num_tails = 4
 num_airports = 3
 num_fare_classes = 2
 num_delay_levels = 2
@@ -36,8 +33,8 @@ std = [f + 0.5 for f in F]
 sta = [f + 1 for f in F]
 
 # Arrival and Depature slots
-DA = [(t, t + 1) for t in T]
-AA = [(t - 0.5, t + 0.5) for t in range(1, num_tails + 1)]
+DA = [(f, f + 1) for f in F]
+AA = [(f - 0.5, f + 0.5) for f in range(1, num_flights + 1)]
 
 # Set of arrival and departure slots compatible with flight f
 AAF = [
@@ -54,12 +51,17 @@ FAA = [[f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA]
 FDA = [[f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA]
 
 # set of flights compatible with tail T
-F_t = []  # Assume this is right for now
-for f in F:
-    if f < 10:
-        F_t += [list(range(0, 20, 2))]
-    else:
-        F_t += [list(range(1, 20, 2))]
+# Assume this is right for now
+F_t = [list(F) for _ in T]
+# for t in T:
+#     if num_tails == 1:
+#         F_t += [[0, 1]]
+#         break
+
+#     if t < num_tails / 2:
+#         F_t += [list(range(0, num_flights, 2))]
+#     else:
+#         F_t += [list(range(1, num_flights, 2))]
 
 # set of tails compatible with flight F
 T_f = [[t for t in T if f in F_t[t]] for f in F]
@@ -117,14 +119,12 @@ for f in F:
 # and the scheduled arrival of f is before the scheduled departure of fd
 CF_f = [
     [
-        fd for fd in F 
-        if AK_f[f] == departure_airport_of_f[fd] 
-        and sta[f] < std[fd]
-        and fd != f
-    ] for f in F
+        fd
+        for fd in F
+        if AK_f[f] == departure_airport_of_f[fd] and sta[f] <= std[fd] and fd != f
+    ]
+    for f in F
 ]
-
-import pdb; pdb.set_trace()
 
 # Subset of itineraries compatible with a reassignment from an original itinerary p.
 # itinary p is compatible for a reassignment with itinary pd if they both share the
@@ -170,7 +170,7 @@ second = [[0, 1, 0]]
 
 tb = []
 for t in T:
-    if t < 10:
+    if t < num_tails / 2:
         tb += first
     else:
         tb += second
@@ -179,5 +179,17 @@ for t in T:
 print(len(tb))
 
 # Capacity of arrival and departure slots
-scA = [1 for _ in range(20)]
-scD = [1 for _ in range(20)]
+scA = [1 for _ in range(num_flights)]
+scD = [1 for _ in range(num_flights)]
+
+# Scheduled buffer time for each flight (set to 0 for now)
+sb = [0 for _ in range(num_flights)]
+
+# minimum turn time between flight f and fd with tail t
+mtt = [[[0 for _ in range(num_tails)] for _ in F] for _ in F]
+
+# Planned connection time between flights f and fd. It equals scheduled departure time of 
+# flight fd minus the scheduled arrival time of flight f.
+ct = [[max(0,std[fd]-sta[f]) for fd in F] for f in F]
+
+import pdb; pdb.set_trace()

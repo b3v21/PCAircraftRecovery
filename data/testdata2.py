@@ -15,7 +15,7 @@ import numpy as np
 # Arrivals occuring every
 
 num_flights = 4
-num_tails = 4
+num_tails = 2
 num_airports = 3
 num_fare_classes = 2
 num_delay_levels = 2
@@ -166,7 +166,7 @@ theta = [[[[0 for _ in Y] for _ in P] for _ in P] for _ in Z]
 
 # Starting location of planes (binary) ((for t) for k)
 first = [[1, 0, 0]]
-second = [[0, 1, 0]]
+second = [[1, 0, 0]]
 
 tb = []
 for t in T:

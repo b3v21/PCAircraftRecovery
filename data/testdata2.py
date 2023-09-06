@@ -191,5 +191,3 @@ mtt = [[[0 for _ in range(num_tails)] for _ in F] for _ in F]
 # Planned connection time between flights f and fd. It equals scheduled departure time of 
 # flight fd minus the scheduled arrival time of flight f.
 ct = [[max(0,std[fd]-sta[f]) for fd in F] for f in F]
-
-import pdb; pdb.set_trace()

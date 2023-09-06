@@ -56,6 +56,7 @@ def airline_recovery_basic() -> None:
     vA = {(asl, f): m.addVar(vtype=GRB.BINARY) for f in F for asl in range(len(AA))}
     vD = {(dsl, f): m.addVar(vtype=GRB.BINARY) for f in F for dsl in range(len(DA))}
     gamma = {f: m.addVar() for f in F}
+    tao = {(p, pd): m.addVar(lb=-GRB.INFINITY) for p in range(len(P)) for pd in CO_p[p]}
 
     # Objective (currently just operating cost and reassignment cost)
     m.setObjective(
@@ -279,6 +280,32 @@ def airline_recovery_basic() -> None:
 
     # Itinerary Delay Constraints
 
+    # Calculate the passenger arrival delay after the itinerary reassignment.
+    idc_1 = {
+        (p, pd): m.addConstr(
+            tao[p, pd]
+            == quicksum(lf[fd][pd] * (deltaA[fd] + sta[fd]) for fd in F)
+            - quicksum(lf[f][p] * sta[f] for f in F)
+        )
+        for p in range(len(P))
+        for pd in CO_p[p]
+    }
+
+    # Determine the passenger delay level for each pair of compatible itineraries,
+    # depending on the actual delay value in minutes.
+    idc_2 = {
+        (p, pd): m.addConstr(
+            tao[p, pd] <= quicksum(small_theta[g] * alpha[p, pd, g] for g in Z)
+        )
+        for p in range(len(P))
+        for pd in CO_p[p]
+    }
+    idc_3 = {
+        (p, pd): m.addConstr(quicksum(alpha[p, pd, g] for g in Z) == 1)
+        for p in range(len(P))
+        for pd in CO_p[p]
+    }
+
     m.optimize()
 
     # Generate an output:
@@ -326,16 +353,6 @@ def airline_recovery_basic() -> None:
     for f in F:
         if rho[f].x > 0.9:
             print(f"Flight {f} is the first flight.")
-
-    # print("\nSUS CONSTRAINTS:")
-    # for f in F:
-    #     for fd in CF_f[f]:
-    #         for t in list(set(T_f[f]).intersection(T_f[fd])):
-    #             import pdb; pdb.set_trace()
-    #             print("1. 1+x[t,fd] >= x[t,f] + y[f,fd], 2. 1+x[t,f] >= x[t,fd] + y[f,fd]")
-    #             print(f"1. 1+{x[t,fd].x}>={x[t,f].x}+{y[f,fd].x}, 2. {1}+{x[t,f].x}<= {x[t,fd].x}+{y[f,fd].x}")
-
-    return
 
 
 if __name__ == "__main__":

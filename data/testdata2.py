@@ -1,9 +1,9 @@
 import numpy as np
 
-# T0: F0 (depart A0, arrive A1) -> T0: F1 (depart A1, arrive A2)   P0
-# T1: F2 (depart A0, arrive A1) -> T1: F3 (depart A1, arrive A2)   P1
+# T0: F0 (depart A0, arrive A1) -> T0: F1 (depart A1, arrive A2)        P0
+# T1: F2 (depart A0, arrive A1) -> T1: F3 (depart A1, arrive A2)        P1
 # ...
-# TN: F2N (depart A0, arrive A1) -> T4: F(2N+1) (depart A1, arrive A2)   PN
+# TN: F2N (depart A0, arrive A1) -> T4: F(2N+1) (depart A1, arrive A2)  PN
 
 # Departures occuring every 0.5 hrs
 # Arrivals occuring every
@@ -170,3 +170,9 @@ ct = [[max(0, std[fd] - sta[f]) for fd in F] for f in F]
 
 # set of ordered flight pairs of consecutive flights in itinary p.
 CF_p = [(2 * p, 2 * p + 1) for p in range(len(P))]
+
+# One if flight f is the last flight of itinerary p, and zero otherwise.
+lf = [[(lambda last: 1 if last == f else 0)(p[1]) for p in P] for f in F]
+
+# Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
+small_theta = [1000 for _ in Z]

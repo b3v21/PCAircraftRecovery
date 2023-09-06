@@ -1,15 +1,7 @@
-import numpy as np
-
-# T0: F0 (depart A0, arrive A1) -> T10: F1 (depart A1, arrive A2)
-# T1: F2 (depart A0, arrive A1) -> T11: F3 (depart A1, arrive A2)
-# T2: F4 (depart A0, arrive A1) -> T12: F5 (depart A1, arrive A2)
-# T3: F6 (depart A0, arrive A1) -> T13: F7 (depart A1, arrive A2)
-# T4: F8 (depart A0, arrive A1) -> T14: F9 (depart A1, arrive A2)
-# T5: F10 (depart A0, arrive A1) -> T15: F11 (depart A1, arrive A2)
-# T6: F12 (depart A0, arrive A1) -> T16: F13 (depart A1, arrive A2)
-# T7: F14 (depart A0, arrive A1) -> T17: F15 (depart A1, arrive A2)
-# T8: F16 (depart A0, arrive A1) -> T18: F17 (depart A1, arrive A2)
-# T9: F18 (depart A0, arrive A1) -> T19: F19 (depart A1, arrive A2)
+# T0: F0 (depart A0, arrive A1) -> T0: F1 (depart A1, arrive A2)        P0
+# T1: F2 (depart A0, arrive A1) -> T1: F3 (depart A1, arrive A2)        P1
+# ...
+# TN: F2N (depart A0, arrive A1) -> T4: F(2N+1) (depart A1, arrive A2)  PN
 
 # Departures occuring every 0.5 hrs
 # Arrivals occuring every
@@ -51,17 +43,8 @@ FAA = [[f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA]
 FDA = [[f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA]
 
 # set of flights compatible with tail T
-# Assume this is right for now
+# (currently every flight is compatible with every tail)
 F_t = [list(F) for _ in T]
-# for t in T:
-#     if num_tails == 1:
-#         F_t += [[0, 1]]
-#         break
-
-#     if t < num_tails / 2:
-#         F_t += [list(range(0, num_flights, 2))]
-#     else:
-#         F_t += [list(range(1, num_flights, 2))]
 
 # set of tails compatible with flight F
 T_f = [[t for t in T if f in F_t[t]] for f in F]
@@ -92,18 +75,6 @@ for f in F:
         FD_k[0].add(f)
     else:
         FD_k[1].add(f)
-
-# for f in F:
-#     found = False
-#     if not found:
-#         for p in P:
-#             if f not in p:
-#                 continue
-#             if f == p[0]:
-#                 FD_k[random.randint(0, num_airports-1)].add(f)
-#             else:
-#                 FD_k[AK_f[p[p.index(f) - 1]]].add(f)
-#             found = True
 
 departure_airport_of_f = {}
 for f in F:
@@ -145,7 +116,7 @@ CO_p = [
 # Data
 
 # Cost of operating flight f with tail t
-oc = [[1 for _ in range(num_flights)] for _ in range(num_tails)]
+oc = [[1 for _ in F] for _ in T]
 
 # Delay cost per minute of arrival delay of flight f
 dc = [100 for _ in F]
@@ -179,15 +150,27 @@ for t in T:
 print(len(tb))
 
 # Capacity of arrival and departure slots
-scA = [1 for _ in range(num_flights)]
-scD = [1 for _ in range(num_flights)]
+scA = [1 for _ in F]
+scD = [1 for _ in F]
 
 # Scheduled buffer time for each flight (set to 0 for now)
-sb = [0 for _ in range(num_flights)]
+sb = [0 for _ in F]
 
 # minimum turn time between flight f and fd with tail t
-mtt = [[[0 for _ in range(num_tails)] for _ in F] for _ in F]
+mtt = [[[0 for _ in T] for _ in F] for _ in F]
+
+# minimum connection time between flight f and fd in itinerary p
+mct = [[[0 for _ in P] for _ in F] for _ in F]
 
 # Planned connection time between flights f and fd. It equals scheduled departure time of
 # flight fd minus the scheduled arrival time of flight f.
 ct = [[max(0, std[fd] - sta[f]) for fd in F] for f in F]
+
+# set of ordered flight pairs of consecutive flights in itinary p.
+CF_p = [(2 * p, 2 * p + 1) for p in range(len(P))]
+
+# One if flight f is the last flight of itinerary p, and zero otherwise.
+lf = [[(lambda last: 1 if last == f else 0)(p[1]) for p in P] for f in F]
+
+# Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
+small_theta = [1000 for _ in Z]

@@ -1,5 +1,3 @@
-import numpy as np
-
 # T0: F0 (depart A0, arrive A1) -> T0: F1 (depart A1, arrive A2)        P0
 # T1: F2 (depart A0, arrive A1) -> T1: F3 (depart A1, arrive A2)        P1
 # ...

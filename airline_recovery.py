@@ -250,12 +250,34 @@ def airline_recovery_basic() -> None:
 
     fdc_2 = {
         (f, fd, t): m.addConstr(
-            deltaD[fd]>=deltaA[f]+mtt[f][fd][t]-ct[f][fd]-BIG_M*(3-x[t,f]-x[t,fd]-y[f,fd])
+            deltaD[fd]
+            >= deltaA[f]
+            + mtt[f][fd][t]
+            - ct[f][fd]
+            - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
         )
         for f in F
         for fd in CF_f[f]
         for t in list(set(T_f[f]).intersection(T_f[fd]))
     }
+
+    # Itinerary Feasibility Constraints: Determine when an itinerary gets disrupted due
+    # to flight cancelations and due to flight retiming decisions, respectively.
+    ifc_1 = {
+        (f, p): m.addConstr(lambd[p] >= z[f])
+        for f in F
+        for p in range(len(P))
+        if f in P[p]
+    }
+    ifc_2 = {
+        p: m.addConstr(
+            std[CF_p[p][1]] + deltaD[CF_p[p][1]] - sta[CF_p[p][0]] - deltaA[CF_p[p][0]]
+            >= mct[CF_p[p][0]][CF_p[p][1]][p] - BIG_M * lambd[p]
+        )
+        for p in range(len(P))
+    }
+
+    # Itinerary Delay Constraints
 
     m.optimize()
 

@@ -106,7 +106,7 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
     # gamma[f] = delay absorbed by flight f
     gamma = {f: m.addVar() for f in F}
 
-    variables = [
+    return [
         x,
         z,
         y,
@@ -122,7 +122,6 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
         vD,
         gamma,
     ]
-    return variables
 
 
 def flight_scheduling_constraints(

@@ -1,5 +1,6 @@
 from gurobipy import *
 from data.testdata2 import *
+from collections import namedtuple
 
 BIG_M = 999999999
 
@@ -8,32 +9,52 @@ BIG_M = 999999999
 # is the inequality of constraint (6) backwards?
 # Can tb just be a list of the starting location? Can a plane be in two places at once?
 
-
-def airline_recovery_basic() -> None:
+def run_aircraft_recovery() -> None:
     """
     basic initial implementation of Passenger-Centric Integrated Airline Schedule and
     Aircraft Recovery.
 
-    Initial Data Setup:
-
-    - Both planes have 100 passengers (and a capacity of 100 passengers)
-    - There is only 1 fare class
-    - only one delay level (shouldn't be any delays)
-    - Operating cost of flights = 1
-    - Phantom rate currently set to 0
-    - Each capacity and arrival slot has capacity of 2
-
-    - Currently no rescheduling has to occur
-
-    ITINERARIES
-    T0: F0 (depart A0, arrive A1) -> F1 (depart A1, arrive A2)
-    T1: F2 (depart A0, arrive A1) -> F3 (depart A1, arrive A2)
-
-    The scheduled arrival/departure of these planes can be seen below
+    Uses data imported from the file imported above.
     """
 
     m = Model("airline recovery basic")
+    variables  = generate_variables(m)
+    x, z, y, sigma, rho, phi, h, lambd, alpha, deltaA, deltaD, vA, vD, gamma = variables
+    
+    # Objective (currently just operating cost and reassignment cost)
+    m.setObjective(
+        (
+            quicksum(oc[t][f] * x[t, f] for t in T for f in F_t[t])
+            + quicksum(
+                rc[p][pd]
+                * (
+                    1
+                    - quicksum(theta[v][p][pd][zeta] * alpha[p, pd, zeta] for zeta in Z)
+                )
+                * h[p, pd, v]
+                for v in Y
+                for p in range(len(P))
+                for pd in CO_p[p]
+            )
+        ),
+        GRB.MINIMIZE,
+    )
+    
+    flight_scheduling_constraints(m, variables)
+    sequencing_and_fleet_size_constraints(m, variables)
+    passenger_flow_constraints(m, variables)
+    airport_slot_constraints(m, variables)
+    flight_delay_constraints(m, variables)
+    
+    m.optimize()
+    
+    generate_output(m, variables)
+    
 
+def generate_variables(m : Model) -> list[dict[list[int], Var]]:
+    """
+    Generate variables for the model
+    """
     # Variables
     # x[t, f] = 1 if tail t is assigned to flight f
     x = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
@@ -83,32 +104,33 @@ def airline_recovery_basic() -> None:
     
     # gamma[f] = delay absorbed by flight f
     gamma = {f: m.addVar() for f in F}
+    
+    variables = [x, z, y, sigma, rho, phi, h, lambd, alpha, deltaA, deltaD, vA, vD, gamma]
+    return variables
 
-    # Objective (currently just operating cost and reassignment cost)
-    m.setObjective(
-        (
-            quicksum(oc[t][f] * x[t, f] for t in T for f in F_t[t])
-            + quicksum(
-                rc[p][pd]
-                * (
-                    1
-                    - quicksum(theta[v][p][pd][zeta] * alpha[p, pd, zeta] for zeta in Z)
-                )
-                * h[p, pd, v]
-                for v in Y
-                for p in range(len(P))
-                for pd in CO_p[p]
-            )
-        ),
-        GRB.MINIMIZE,
-    )
 
-    # Flight Scheduling Constraints
+
+def flight_scheduling_constraints(m : Model, variables: list[dict[list[int], Var]]) -> None:
+    """
+    Flight Scheduling Constraints
+    """
+    
+    x, z, y, sigma, rho, phi, h, lambd, alpha, deltaA, deltaD, vA, vD, gamma = variables
 
     # Every flight must be either flown using exactly one aircraft or must be cancelled
     fsc_1 = {f: m.addConstr(quicksum(x[t, f] for t in T_f[f]) + z[f] == 1) for f in F}
 
-    # Sequencing & Fleet Size Constraints
+
+
+def sequencing_and_fleet_size_constraints(m : Model, variables: list[dict[list[int], Var]]) -> None:
+    """
+    Sequencing & Fleet Size Constraints
+    
+    NOTE: Sequencing & Fleet Size Constraints still allow for a tail to not be used
+    at all during the recovery period
+    """
+    
+    x, z, y, sigma, rho, phi, h, lambd, alpha, deltaA, deltaD, vA, vD, gamma = variables
 
     # Each non-cancelled flight has another flight after it operated by the same tail,
     # unless it is the last flight in the recovery period operated by that tail
@@ -163,11 +185,15 @@ def airline_recovery_basic() -> None:
         for k in K
     }
 
-    # NOTE: Sequencing & Fleet Size Constraints still allow for a tail to not be used
-    # at all during the recovery period
 
-    # Passenger Flow Constraints
 
+def passenger_flow_constraints(m : Model, variables: list[dict[list[int], Var]]) -> None:
+    """
+    Passenger Flow Constraints
+    """
+    
+    x, z, y, sigma, rho, phi, h, lambd, alpha, deltaA, deltaD, vA, vD, gamma = variables
+    
     # All passengers are reassigned to some itinerary, which might be the same or different
     # from their originally scheduled itinerary (this include a null itinerary if reassignment
     # is not possible during the recovery period)
@@ -202,7 +228,14 @@ def airline_recovery_basic() -> None:
         for f in F
     }
 
-    # Airport slot constraints
+
+
+def airport_slot_constraints(m : Model, variables: list[dict[list[int], Var]]) -> None:
+    """
+    Airport slot constraints
+    """
+
+    x, z, y, sigma, rho, phi, h, lambd, alpha, deltaA, deltaD, vA, vD, gamma = variables
 
     # Start time of arrival slot asl is no later than the combined scheduled arrival time and
     # arrival delay of flight f, only if the arrival slot is assigned to flight f.
@@ -266,7 +299,14 @@ def airline_recovery_basic() -> None:
         for dsl in range(len(DA))
     }
 
-    # Flight Delay Constraints
+
+
+def flight_delay_constraints(m : Model, variables: list[dict[list[int], Var]]) -> None:
+    """
+    Flight Delay Constraints
+    """
+    
+    x, z, y, sigma, rho, phi, h, lambd, alpha, deltaA, deltaD, vA, vD, gamma = variables
 
     # relate the departure and arrival delays of each flight via delay absorption through
     # increased cruise speed.
@@ -284,9 +324,12 @@ def airline_recovery_basic() -> None:
         for t in list(set(T_f[f]).intersection(T_f[fd]))
     }
 
-    m.optimize()
 
-    # Generate an output:
+
+def generate_output(m : Model, variables: list[dict[list[int], Var]]) -> None:
+    
+    x, z, y, sigma, rho, phi, h, lambd, alpha, deltaA, deltaD, vA, vD, gamma = variables
+
     print("\nList of tails which are assigned to flights:")
     for t in T:
         for f in F:
@@ -344,4 +387,4 @@ def airline_recovery_basic() -> None:
 
 
 if __name__ == "__main__":
-    airline_recovery_basic()
+    run_aircraft_recovery()

@@ -1,3 +1,11 @@
+# - Both planes have 100 passengers (and a capacity of 100 passengers)
+#     - There is only 1 fare class
+#     - only one delay level (shouldn't be any delays)
+#     - Operating cost of flights = 1
+#     - Phantom rate currently set to 0
+#     - Each capacity and arrival slot has capacity of 2
+#     - Currently no rescheduling has to occur
+
 num_flights = 4
 num_tails = 2
 num_airports = 3

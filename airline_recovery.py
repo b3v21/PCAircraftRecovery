@@ -16,23 +16,7 @@ def run_aircraft_recovery() -> None:
 
     m = Model("airline recovery basic")
     variables = generate_variables(m)
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    x, _, _, _, _, _, h, _, alpha, deltaA, _, _, _, gamma, _ = variables
 
     m.setObjective(
         (
@@ -160,23 +144,7 @@ def flight_scheduling_constraints(
     Flight Scheduling Constraints
     """
 
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     # Every flight must be either flown using exactly one aircraft or must be cancelled
     fsc_1 = {f: m.addConstr(quicksum(x[t, f] for t in T_f[f]) + z[f] == 1) for f in F}
@@ -192,23 +160,7 @@ def sequencing_and_fleet_size_constraints(
     at all during the recovery period
     """
 
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    x, z, y, sigma, rho, phi, _, _, _, _, _, _, _, _, _ = variables
 
     # Each non-cancelled flight has another flight after it operated by the same tail,
     # unless it is the last flight in the recovery period operated by that tail
@@ -269,23 +221,7 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
     Passenger Flow Constraints
     """
 
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    x, _, _, _, _, _, h, lambd, alpha, _, _, _, _, _, _ = variables
 
     # All passengers are reassigned to some itinerary, which might be the same or
     # different from their originally scheduled itinerary (this include a null itinerary
@@ -327,23 +263,7 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
     Airport slot constraints
     """
 
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    _, z, _, _, _, _, _, _, _, deltaA, deltaD, vA, vD, _, _ = variables
 
     # Start time of arrival slot asl is no later than the combined scheduled arrival time
     # and arrival delay of flight f, only if the arrival slot is assigned to flight f.
@@ -415,23 +335,7 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
     Flight Delay Constraints
     """
 
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    x, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, gamma, _ = variables
 
     # relate the departure and arrival delays of each flight via delay absorption through
     # increased cruise speed.
@@ -462,23 +366,7 @@ def itinerary_feasibility_constraints(
     to flight cancelations and due to flight retiming decisions, respectively.
     """
 
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    _, z, _, _, _, _, _, lambd, alpha, deltaA, deltaD, _, _, _, _ = variables
 
     ifc_1 = {
         (f, p): m.addConstr(lambd[p] >= z[f])
@@ -502,23 +390,7 @@ def itinerary_delay_constraints(
     Itinerary Delay Constraints
     """
 
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    _, _, _, _, _, _, _, _, alpha, deltaA, _, _, _, _, tao = variables
 
     # Calculate the passenger arrival delay after the itinerary reassignment.
     idc_1 = {
@@ -548,23 +420,7 @@ def itinerary_delay_constraints(
 
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-    ) = variables
+    x, z, y, sigma, rho, _, _, lambd, _, _, _, vA, vD, _, _ = variables
 
     print("\nList of tails which are assigned to flights:")
     for t in T:

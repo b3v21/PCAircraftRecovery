@@ -116,7 +116,7 @@ CO_p = [
 # Data
 
 # Cost of operating flight f with tail t
-oc = [[1 for _ in F] for _ in T]
+oc = [[1500 for _ in F] for _ in T]
 
 # Delay cost per minute of arrival delay of flight f
 dc = [100 for _ in F]
@@ -174,3 +174,20 @@ lf = [[(lambda last: 1 if last == f else 0)(p[1]) for p in P] for f in F]
 
 # Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
 small_theta = [1000 for _ in Z]
+
+# Extra fuel cost for delay absorption (through cruise speed increases) per minute for
+# flight f.
+fc = [100 for _ in F]
+
+# Sum of the cost of the loss of goodwill and the compensation cost (if any) for a
+# passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
+# the passenger’s destination arrival delay via itinerary p′ compared with the planned
+# arrival time of itinerary p corresponds to delay level ζ
+pc = [[[0 for _ in P] for _ in P] for _ in Z]
+
+# Per-flight schedule change penalty for not operating the flight using the originally
+# planned tail.
+kappa = 100
+
+# One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
+x_hat = [[1, 1, 0, 0], [0, 0, 1, 1]]

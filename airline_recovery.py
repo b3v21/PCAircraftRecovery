@@ -1,13 +1,9 @@
 from gurobipy import *
 from data.testdata2 import *
-from collections import namedtuple
 
 BIG_M = 999999999
 
-# QUESTIONS:
-# is rho redundant?
-# is the inequality of constraint (6) backwards?
-# Can tb just be a list of the starting location? Can a plane be in two places at once?
+# QUESTIONS: is rho redundant?
 
 
 def run_aircraft_recovery() -> None:
@@ -38,20 +34,31 @@ def run_aircraft_recovery() -> None:
         tao,
     ) = variables
 
-    # Objective (currently just operating cost and reassignment cost)
     m.setObjective(
         (
             quicksum(oc[t][f] * x[t, f] for t in T for f in F_t[t])
+            + quicksum(fc[f] * gamma[f] for f in F)
+            + quicksum(dc[f] * deltaA[f] for f in F)
             + quicksum(
                 rc[p][pd]
-                * (
-                    1
-                    - quicksum(theta[v][p][pd][zeta] * alpha[p, pd, zeta] for zeta in Z)
-                )
+                * (1 - quicksum(theta[v][p][pd][g] * alpha[p, pd, g] for g in Z))
                 * h[p, pd, v]
                 for v in Y
                 for p in range(len(P))
                 for pd in CO_p[p]
+            )
+            + quicksum(
+                pc[p][pd][g] * alpha[p, pd, g] * h[p, pd, v]
+                for v in Y
+                for p in range(len(P))
+                for pd in CO_p[p]
+                for g in Z
+            )
+            + kappa
+            * quicksum(
+                x[t, f] - 2 * x_hat[t][f] * x[t, f] + x_hat[t][f]
+                for t in T
+                for f in F_t[t]
             )
         ),
         GRB.MINIMIZE,
@@ -75,25 +82,25 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
     Generate variables for the model
     """
     # Variables
-    # x[t, f] = 1 if tail t is assigned to flight f
+    # 1 if tail t is assigned to flight f
     x = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
 
-    # z[f] = 1 if flight f is cancelled
+    # 1 if flight f is cancelled
     z = {f: m.addVar(vtype=GRB.BINARY) for f in F}
 
-    # y[f, fd] = 1 if flight f is flown and then flight fd is flown
+    #  if flight f is flown and then flight fd is flown
     y = {(f, fd): m.addVar(vtype=GRB.BINARY) for f in F for fd in F if fd != f}
 
-    # sigma[f] = 1 if flight f is the last flight in the recovery period operated by its tail
+    # 1 if flight f is the last flight in the recovery period operated by its tail
     sigma = {f: m.addVar(vtype=GRB.BINARY) for f in F}
 
-    # rho[f] = 1 if flight f is the first flight in the recovery period operated by its tail
+    #  if flight f is the first flight in the recovery period operated by its tail
     rho = {f: m.addVar(vtype=GRB.BINARY) for f in F}
 
-    # phi[t, f] = 1 if flight f is the first flight for tail t in the recovery period
+    # 1 if flight f is the first flight for tail t in the recovery period
     phi = {(t, f): m.addVar(vtype=GRB.BINARY) for f in F for t in T}
 
-    # h[p, pd, v] = number of passengers in fare class v that are reassigned from itinerary p to itinerary p
+    # number of passengers in fare class v, reassigned from itinerary p to itinerary p
     h = {
         (p, pd, v): m.addVar() for v in Y for p in range(len(P)) for pd in range(len(P))
     }
@@ -101,7 +108,7 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
     # lambd[p] = 1 if itinerary p is disrupted
     lambd = {p: m.addVar(vtype=GRB.BINARY) for p in range(len(P))}
 
-    # alpha[p, pd, zeta] = 1 if itinerary p is reassigned to itinerary pd with delay level zeta
+    # 1 if itinerary p is reassigned to itinerary pd with delay level zeta
     alpha = {
         (p, pd, zeta): m.addVar(vtype=GRB.BINARY)
         for p in range(len(P))
@@ -109,22 +116,22 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
         for zeta in Z
     }
 
-    # deltaA[f] = arrival delay of flight f
+    # arrival delay of flight f
     deltaA = {f: m.addVar() for f in F}
 
-    # deltaD[f] = departure delay of flight f
+    # departure delay of flight f
     deltaD = {f: m.addVar() for f in F}
 
-    # vA[asl, f] = 1 if arrival slot asl is assigned to flight f
+    # 1 if arrival slot asl is assigned to flight f
     vA = {(asl, f): m.addVar(vtype=GRB.BINARY) for f in F for asl in range(len(AA))}
 
-    # vD[dsl, f] = 1 if departure slot dsl is assigned to flight f
+    # 1 if departure slot dsl is assigned to flight f
     vD = {(dsl, f): m.addVar(vtype=GRB.BINARY) for f in F for dsl in range(len(DA))}
 
-    # gamma[f] = delay absorbed by flight f
+    # delay absorbed by flight f
     gamma = {f: m.addVar() for f in F}
 
-    # tao[p,pd] = Arrival delay of itinerary pd with respect to planned arrival time of itinerary p
+    # Arrival delay of itinerary pd with respect to planned arrival time of itinerary p
     tao = {(p, pd): m.addVar(lb=-GRB.INFINITY) for p in range(len(P)) for pd in CO_p[p]}
 
     return [
@@ -280,9 +287,9 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
         tao,
     ) = variables
 
-    # All passengers are reassigned to some itinerary, which might be the same or different
-    # from their originally scheduled itinerary (this include a null itinerary if reassignment
-    # is not possible during the recovery period)
+    # All passengers are reassigned to some itinerary, which might be the same or
+    # different from their originally scheduled itinerary (this include a null itinerary
+    # if reassignment is not possible during the recovery period)
     pfc_1 = {
         (p, v): m.addConstr(quicksum(h[p, pd, v] for pd in CO_p[p]) == n[v][p])
         for p in range(len(P))
@@ -297,8 +304,8 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
         for pd in CO_p[p]
     }
 
-    # The number of passengers that do show up for their reassigned itineraries does not exceed
-    # the total passenger capacity for their reassigned flight
+    # The number of passengers that do show up for their reassigned itineraries does not
+    # exceed the total passenger capacity for their reassigned flight
     pfc_3 = {
         f: m.addConstr(
             quicksum(q[t] * x[t, f] for t in T_f[f])
@@ -338,8 +345,8 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         tao,
     ) = variables
 
-    # Start time of arrival slot asl is no later than the combined scheduled arrival time and
-    # arrival delay of flight f, only if the arrival slot is assigned to flight f.
+    # Start time of arrival slot asl is no later than the combined scheduled arrival time
+    # and arrival delay of flight f, only if the arrival slot is assigned to flight f.
     asc_1 = {
         (f, asl): m.addConstr(
             AA[asl][0] <= sta[f] + deltaA[f] + BIG_M * (1 - vA[asl, f])
@@ -348,8 +355,8 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         for asl in AAF[f]
     }
 
-    # End time of arrival slot asl is no earlier than the combined scheduled arrival time and
-    # arrival delay of flight f, only if the arrival slot is assigned to flight f.
+    # End time of arrival slot asl is no earlier than the combined scheduled arrival time
+    # and arrival delay of flight f, only if the arrival slot is assigned to flight f.
     asc_2 = {
         (f, asl): m.addConstr(
             AA[asl][1] >= sta[f] + deltaA[f] - BIG_M * (1 - vA[asl, f])
@@ -369,8 +376,9 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         for asl in range(len(AA))
     }
 
-    # Start time of departure slot asl is no later than the combined scheduled departure time and
-    # departure delay of flight f, only if the departure slot is assigned to flight f.
+    # Start time of departure slot asl is no later than the combined scheduled departure
+    # time and departure delay of flight f, only if the departure slot is assigned to
+    # flight f.
     asc_5 = {
         (f, dsl): m.addConstr(
             DA[dsl][0] <= std[f] + deltaD[f] + BIG_M * (1 - vD[dsl, f])
@@ -379,8 +387,9 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         for dsl in DAF[f]
     }
 
-    # End time of departure slot asl is no earlier than the combined scheduled departure time and
-    # departure delay of flight f, only if the departure slot is assigned to flight f.
+    # End time of departure slot asl is no earlier than the combined scheduled departure
+    # time and departure delay of flight f, only if the departure slot is assigned to
+    # flight f.
     asc_6 = {
         (f, dsl): m.addConstr(
             DA[dsl][1] >= std[f] + deltaD[f] - BIG_M * (1 - vD[dsl, f])

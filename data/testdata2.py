@@ -8,8 +8,8 @@ from collections import deque
 # Departures occuring every 0.5 hrs
 # Arrivals occuring every
 
-num_flights = 4
-num_tails = 2
+num_flights = 20
+num_tails = 10
 num_airports = 3
 num_fare_classes = 2
 num_delay_levels = 2
@@ -185,14 +185,14 @@ fc = [100 for _ in F]
 # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
 # the passenger’s destination arrival delay via itinerary p′ compared with the planned
 # arrival time of itinerary p corresponds to delay level ζ
-pc = [[[0 for _ in P] for _ in P] for _ in Z]
+pc = [[[0 for _ in Z] for _ in P] for _ in P]
 
 # Per-flight schedule change penalty for not operating the flight using the originally
 # planned tail.
 kappa = 100
 
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-x_hat_sub = [1, 1] + [0 for f in range(num_flights - 2)]
+x_hat_sub = [1, 1] + [0 for _ in range(num_flights - 2)]
 x_hat = [x_hat_sub]
 
 for _ in range(num_tails - 1):

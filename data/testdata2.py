@@ -1,3 +1,5 @@
+from collections import deque
+
 # T0: F0 (depart A0, arrive A1) -> T0: F1 (depart A1, arrive A2)        P0
 # T1: F2 (depart A0, arrive A1) -> T1: F3 (depart A1, arrive A2)        P1
 # ...
@@ -190,4 +192,11 @@ pc = [[[0 for _ in P] for _ in P] for _ in Z]
 kappa = 100
 
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-x_hat = [[1, 1, 0, 0], [0, 0, 1, 1]]
+x_hat_sub = [1, 1] + [0 for f in range(num_flights - 2)]
+x_hat = [x_hat_sub]
+
+for _ in range(num_tails - 1):
+    x_hat_sub = deque(x_hat_sub)
+    x_hat_sub.rotate(2)
+    x_hat_sub = list(x_hat_sub)
+    x_hat += [x_hat_sub]

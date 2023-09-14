@@ -390,12 +390,14 @@ def itinerary_feasibility_constraints(
         for p in range(len(P))
         if f in P[p]
     }
+
     ifc_2 = {
         p: m.addConstr(
             std[CF_p[p][1]] + deltaD[CF_p[p][1]] - sta[CF_p[p][0]] - deltaA[CF_p[p][0]]
             >= mct[CF_p[p][0]][CF_p[p][1]][p] - BIG_M * lambd[p]
         )
         for p in range(len(P))
+        if CF_p[p]
     }
 
 
@@ -474,7 +476,7 @@ def beta_linearizing_constraints(
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     x, z, y, sigma, rho, phi, _, lambd, _, _, _, vA, vD, _, _, _ = variables
 
-    print("\nConsecutive Flights:")
+    print("\nFlights:")
     for f in F:
         for fd in F:
             if fd != f:
@@ -482,6 +484,11 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                     for t in T:
                         if x[t, f].x > 0.9 and x[t, fd].x > 0.9:
                             print(f"T{t}: F{f} -> F{fd}")
+                            break
+    else:
+        for t in T:
+            if x[t, f].x > 0.9:
+                print(f"T{t}: F{f}")
 
     print("\nList of cancelled flights")
     for f in F:

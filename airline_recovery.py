@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.testdata2 import *
+from data.test_basic_multi_flight_itineraries_scalable import *
 
 BIG_M = 999999999
 

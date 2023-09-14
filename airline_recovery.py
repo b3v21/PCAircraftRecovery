@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_basic_multi_flight_itineraries_scalable import *
+from data.test_no_flight_if_no_passengers import *
 
 BIG_M = 999999999
 
@@ -479,12 +479,18 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     print("\nFlights:")
     for f in F:
         for fd in F:
+            printed = False
             if fd != f:
                 if y[f, fd].x > 0.9:
                     for t in T:
                         if x[t, f].x > 0.9 and x[t, fd].x > 0.9:
                             print(f"T{t}: F{f} -> F{fd}")
+                            printed = True
                             break
+                    if printed:
+                        break
+        if printed:
+            break
     else:
         for t in T:
             if x[t, f].x > 0.9:

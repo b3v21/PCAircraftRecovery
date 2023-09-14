@@ -472,52 +472,38 @@ def beta_linearizing_constraints(
 
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
-    x, z, y, sigma, rho, _, _, lambd, _, _, _, vA, vD, _, _, _ = variables
-
-    print("\nList of tails which are assigned to flights:")
-    for t in T:
-        for f in F:
-            if x[t, f].x > 0.9:
-                print(f"Tail {t} assigned to flight {f}.")
-
-    print("\nList of cancelled flights")
-    for f in F:
-        if z[f].x > 0.9:
-            print(f"Flight {f} has been cancelled.")
-
-    print("\nList of assigned departure slots:")
-    for f in F:
-        for dsl in range(len(DA)):
-            if vD[dsl, f].x > 0.9:
-                print(f"Flight {f} assigned to departure slot {DA[dsl]}")
-
-    print("\nList of assigned arrival slots:")
-    for f in F:
-        for asl in range(len(AA)):
-            if vA[asl, f].x > 0.9:
-                print(f"Flight {f} assigned to arrival slot {AA[asl]}")
-
-    print("\nDisrupted Itineraries:")
-    for p in range(len(P)):
-        if lambd[p].x > 0.9:
-            print(f"Itinerary {p} is disrupted.")
+    x, z, y, sigma, rho, phi, _, lambd, _, _, _, vA, vD, _, _, _ = variables
 
     print("\nConsecutive Flights:")
     for f in F:
         for fd in F:
             if fd != f:
                 if y[f, fd].x > 0.9:
-                    print(f"flight {f} is flown and then flight {fd} is flown.")
+                    for t in T:
+                        if x[t, f].x > 0.9 and x[t, fd].x > 0.9:
+                            print(f"T{t}: F{f} -> F{fd}")
 
-    print("\nLast Flights:")
+    print("\nList of cancelled flights")
     for f in F:
-        if sigma[f].x > 0.9:
-            print(f"Flight {f} is the last flight.")
+        if z[f].x > 0.9:
+            print(f"F{f} cancelled")
 
-    print("\nFirst Flights")
+    print("\nList of assigned departure slots:")
     for f in F:
-        if rho[f].x > 0.9:
-            print(f"Flight {f} is the first flight.")
+        for dsl in range(len(DA)):
+            if vD[dsl, f].x > 0.9:
+                print(f"F{f}: DSL{DA[dsl]}")
+
+    print("\nList of assigned arrival slots:")
+    for f in F:
+        for asl in range(len(AA)):
+            if vA[asl, f].x > 0.9:
+                print(f"F{f}: ASL{AA[asl]}")
+
+    print("\nDisrupted Itineraries:")
+    for p in range(len(P)):
+        if lambd[p].x > 0.9:
+            print(f"I{p} disrupted.")
 
 
 if __name__ == "__main__":

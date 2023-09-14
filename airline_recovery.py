@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_no_flight_if_no_passengers import *
+from data.test_passenger_itinerary_disruption import *
 
 BIG_M = 999999999
 
@@ -474,7 +474,7 @@ def beta_linearizing_constraints(
 
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
-    x, z, y, sigma, rho, phi, _, lambd, _, _, _, vA, vD, _, _, _ = variables
+    x, z, y, sigma, rho, phi, h, lambd, _, _, _, vA, vD, _, _, _ = variables
 
     print("\nFlights:")
     for f in F:
@@ -491,10 +491,11 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                         break
         if printed:
             break
-    else:
-        for t in T:
-            if x[t, f].x > 0.9:
-                print(f"T{t}: F{f}")
+    if not printed:
+        for f in F:
+            for t in T:
+                if x[t, f].x > 0.9:
+                    print(f"T{t}: F{f}")
 
     print("\nList of cancelled flights")
     for f in F:
@@ -516,7 +517,12 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     print("\nDisrupted Itineraries:")
     for p in range(len(P)):
         if lambd[p].x > 0.9:
-            print(f"I{p} disrupted.")
+            print(f"I{p} disrupted:")
+            
+            for pd in range(len(P)):
+                for v in Y:
+                    if p != pd:
+                        print(f"    I{p} -> I{pd} (fare class: {v}) people: {int(h[p, pd, v].x)}")
 
 
 if __name__ == "__main__":

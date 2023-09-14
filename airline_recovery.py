@@ -475,44 +475,37 @@ def beta_linearizing_constraints(
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     x, z, y, sigma, rho, phi, h, lambd, _, _, _, vA, vD, _, _, _ = variables
-
-    print("\nFlights:")
+    print(72*"-")
+    print("\nTail to Flight Assignments:")
     for f in F:
-        for fd in F:
-            printed = False
+        found_chained_flight = False
+        for fd in CF_f[f]:
             if fd != f:
                 if y[f, fd].x > 0.9:
                     for t in T:
                         if x[t, f].x > 0.9 and x[t, fd].x > 0.9:
+                            found_chained_flight = True
                             print(f"T{t}: F{f} -> F{fd}")
-                            printed = True
-                            break
-                    if printed:
-                        break
-        if printed:
-            break
-    if not printed:
-        for f in F:
+                            if found_chained_flight:
+                                break
+                    if found_chained_flight:
+                                break
+        if not found_chained_flight:
             for t in T:
-                if x[t, f].x > 0.9:
+                if x[t, f].x > 0.9 and (sigma[f].x < 0.9 or rho[f].x > 0.9):
                     print(f"T{t}: F{f}")
 
-    print("\nList of cancelled flights")
+    print("\nCancelled Flights:")
     for f in F:
         if z[f].x > 0.9:
             print(f"F{f} cancelled")
 
-    print("\nList of assigned departure slots:")
+    print("\nDeparture / arrival slots:")
     for f in F:
         for dsl in range(len(DA)):
-            if vD[dsl, f].x > 0.9:
-                print(f"F{f}: DSL{DA[dsl]}")
-
-    print("\nList of assigned arrival slots:")
-    for f in F:
-        for asl in range(len(AA)):
-            if vA[asl, f].x > 0.9:
-                print(f"F{f}: ASL{AA[asl]}")
+            for asl in range(len(AA)):
+                if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
+                    print(f"F{f}: \t Departure Slot: {DA[dsl]} \t Arrival Slot: {AA[asl]}")
 
     print("\nDisrupted Itineraries:")
     for p in range(len(P)):
@@ -524,6 +517,7 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                     if p != pd:
                         print(f"    I{p} -> I{pd} (fare class: {v}) people: {int(h[p, pd, v].x)}")
 
+    print("\n" + 72*"-")
 
 if __name__ == "__main__":
     run_aircraft_recovery()

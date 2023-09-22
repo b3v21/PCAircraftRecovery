@@ -16,7 +16,7 @@ num_delay_levels = 2
 # Sets
 T = range(num_tails)
 F = range(num_flights)
-P = [[0],[1]] # Set of itineraries
+P = [[0], [1]]  # Set of itineraries
 K = range(num_airports)
 Y = range(num_fare_classes)
 Z = range(num_delay_levels)
@@ -26,8 +26,8 @@ std = [1, 6]
 sta = [3, 8]
 
 # Arrival and Depature slots
-DA = [(0,2),(5,7)]
-AA = [(2,4),(7,9)] 
+DA = [(0, 2), (5, 7)]
+AA = [(2, 4), (7, 9)]
 
 # Set of arrival and departure slots compatible with flight f
 AAF = [
@@ -51,13 +51,13 @@ F_t = [list(F) for _ in T]
 T_f = [[t for t in T if f in F_t[t]] for f in F]
 
 # Set of flights f which arrive to airport k
-FA_k = {0:[],1:[0,1]}
+FA_k = {0: [], 1: [0, 1]}
 
 # Airport that flight f arrives at (this isnt actually data in the paper)
-AK_f = {0: 1, 1 : 1} 
+AK_f = {0: 1, 1: 1}
 
 # Set of flights f which depart from airport k
-FD_k = {0:[0,1], 1:[]}
+FD_k = {0: [0, 1], 1: []}
 
 departure_airport_of_f = {}
 for f in F:
@@ -77,7 +77,7 @@ CF_f = [[] for fd in F]
 # itinary p is compatible for a reassignment with itinary pd if they both share the
 # same start and end destination
 
-CO_p = [[0,1],[1]]
+CO_p = [[0, 1], [1]]
 
 # Data
 
@@ -130,10 +130,10 @@ mct = [[[0 for _ in P] for _ in F] for _ in F]
 ct = [[max(0, std[fd] - sta[f]) for fd in F] for f in F]
 
 # set of ordered flight pairs of consecutive flights in itinary p.
-CF_p = [(),()]
+CF_p = [(), ()]
 
 # One if flight f is the last flight of itinerary p, and zero otherwise.
-lf = [[0,0],[1,1]]
+lf = [[0, 0], [1, 1]]
 
 # Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
 small_theta = [1000 for _ in Z]
@@ -153,5 +153,4 @@ pc = [[[100 for _ in Z] for _ in P] for _ in P]
 kappa = 100
 
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-x_hat = [[1,0],[0,1]]
-
+x_hat = [[1, 0], [0, 1]]

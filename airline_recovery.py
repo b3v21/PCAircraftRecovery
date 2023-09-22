@@ -475,7 +475,7 @@ def beta_linearizing_constraints(
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     x, z, y, sigma, rho, phi, h, lambd, _, _, _, vA, vD, _, _, _ = variables
-    print(72*"-")
+    print(72 * "-")
     print("\nTail to Flight Assignments:")
     for f in F:
         found_chained_flight = False
@@ -489,7 +489,7 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                             if found_chained_flight:
                                 break
                     if found_chained_flight:
-                                break
+                        break
         if not found_chained_flight:
             for t in T:
                 if x[t, f].x > 0.9 and (sigma[f].x < 0.9 or rho[f].x > 0.9):
@@ -505,19 +505,24 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
         for dsl in range(len(DA)):
             for asl in range(len(AA)):
                 if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
-                    print(f"F{f}: \t Departure Slot: {DA[dsl]} \t Arrival Slot: {AA[asl]}")
+                    print(
+                        f"F{f}: \t Departure Slot: {DA[dsl]} \t Arrival Slot: {AA[asl]}"
+                    )
 
     print("\nDisrupted Itineraries:")
     for p in range(len(P)):
         if lambd[p].x > 0.9:
             print(f"I{p} disrupted:")
-            
+
             for pd in range(len(P)):
                 for v in Y:
                     if p != pd:
-                        print(f"    I{p} -> I{pd} (fare class: {v}) people: {int(h[p, pd, v].x)}")
+                        print(
+                            f"    I{p} -> I{pd} (fare class: {v}) people: {int(h[p, pd, v].x)}"
+                        )
 
-    print("\n" + 72*"-")
+    print("\n" + 72 * "-")
+
 
 if __name__ == "__main__":
     run_aircraft_recovery()

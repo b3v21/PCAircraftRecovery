@@ -77,11 +77,12 @@ class AdjanecyList:
         for neighbour in neighbours:
             self.adj_list[node].append((neighbour, flight_id))
 
-    def get_node(self, name):
+    def get_nodes(self, name):
+        result = []
         for node in self.adj_list:
             if node.name == name:
-                return node
-        return None
+                result.append(node)
+        return result
 
     def add_to_node(self, name, neighbour, flight_id):
         self.adj_list[name].append((neighbour, flight_id))

@@ -87,7 +87,7 @@ class AdjanecyList:
         self.adj_list[name].append((neighbour, flight_id))
 
     def get_neighbours(self, node):
-        return self.adj_list[node]
+        return self.adj_list.get(node, [])
 
     def get_all_nodes(self):
         return self.adj_list.keys()
@@ -181,6 +181,41 @@ def create_graph():
     return adj_list
 
 
+def itinerary_builder(
+    graph: AdjanecyList, length: int, itin: list[int], P: list[int]
+) -> list:
+    """Recursively generates an itinerary of length 'length'"""
+
+    if len(itin) == length:
+        if itin in P:
+            return itinerary_builder(graph, length, [], P)
+        return itin
+
+    if not itin:
+        itin.append(
+            random.choice(
+                list(graph.get_neighbours(random.choice(list(graph.get_all_nodes()))))
+            )[1]
+        )
+    else:
+        next_options = graph.get_neighbours(itin[-1])
+        if not next_options:  # Try to find another way
+            return itinerary_builder(graph, length, [], P)
+        itin.append(random.choice(next_options)[1])
+
+    return itinerary_builder(graph, length, itin, P)
+
+
+def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> list:
+    P = []
+
+    for length, num_itins in itin_classes.items():
+        for _ in range(num_itins):
+            P.append(itinerary_builder(graph, length, [], P))
+
+    return P
+
+
 def extract_data(graph: AdjanecyList) -> None:
     num_flights = sum(graph.count_node_locations().values())
     num_tails = 20  # This is somewhat arbitrary (up to us to decide size of fleet)
@@ -195,11 +230,18 @@ def extract_data(graph: AdjanecyList) -> None:
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
 
-    # Set of itineraries, this needs to be reworked for multi-leg itins
-    P = []
-    for n in graph.get_all_nodes():
-        for neigh, flight_id in graph.get_neighbours(n):
-            P.append([flight_id])
+    # This represents the different types of itineraries which will be generated, in this case
+    # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
+    # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
+    itin_classes = {1: 5}
+
+    try:
+        P = generate_itineraries(graph, itin_classes)
+    except RecursionError:
+        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+        return
+
+    [print(p) for p in P]
 
     # Construct arrival and departure times
     # NOTE: THESE ARE LISTS IN PREV DATA FILES, NOW DICTS

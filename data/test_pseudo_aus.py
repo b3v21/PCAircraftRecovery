@@ -57,6 +57,9 @@ class Node:
 
     def get_id(self):
         return self.id
+    
+    def get_name(self):
+        return self.name
 
     def new_time_copy(self, time, node_id):
         new_node = copy.deepcopy(self)
@@ -140,7 +143,7 @@ def create_graph():
     for node in default_nodes:
         if node.name == "SYD":
             flights_used = random.randrange(
-                int(0.4 * flights_remaining), int(0.61 * flights_remaining)
+                int(0.25 * flights_remaining), int(0.35 * flights_remaining)
             )
         else:
             flights_used = random.randrange(0, int(0.3 * flights_remaining))
@@ -227,7 +230,7 @@ def extract_data(graph: AdjanecyList) -> None:
     # Sets
     T = range(num_tails)
     F = range(num_flights)
-    K = range(num_airports)
+    K = ["SYD", "MEL", "BNE", "PER", "ADL", "OOL", "CNS", "HBA", "CBR", "TSV"]
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
 
@@ -257,6 +260,36 @@ def extract_data(graph: AdjanecyList) -> None:
     DA = [(t, t + 0.25) for t in np.arange(0, TIME_HORIZON, 0.25)]
     AA = [(t, t + 0.25) for t in np.arange(0, TIME_HORIZON, 0.25)]
 
+    # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
+    AAF = {f : [i for i, slot in enumerate(AA) if sta[f] <= slot[1] and sta[f] >= slot[0]] for f in F}
+    DAF = {f : [i for i, slot in enumerate(AA) if std[f] <= slot[1] and std[f] >= slot[0]] for f in F}
+    
+    # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
+    FAA = {asl : [f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA}
+    FDA = {dsl: [f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA}
+    
+    # set of flights compatible with tail T
+    # (currently every flight is compatible with every tail)
+    F_t = {t : list(F) for t in T}
+    
+    # set of tails compatible with flight F
+    T_f = {f : [t for t in T if f in F_t[t]] for f in F}
+    
+    # Set of flights f which arrive to airport k
+    FA_k = {k : [] for k in K}
+    
+    for dep_node in graph.get_all_nodes():
+        arr_nodes = graph.get_neighbours(dep_node)
+        for node in arr_nodes:
+            FA_k[node[0].get_name()] += [f for f in F if f in list(zip(*arr_nodes))[1]]
+    
+    # Set of flights f which depart from airport k
+    FD_k = {k : [] for k in K}
+    
+    for k in K:
+        airport_nodes = graph.get_nodes(k)
+        for node in airport_nodes:
+            FD_k[k] += [f for f in F if f in list(zip(*graph.get_neighbours(node)))[1]]
 
 if __name__ == "__main__":
     graph = create_graph()

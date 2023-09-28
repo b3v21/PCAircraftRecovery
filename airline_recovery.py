@@ -20,21 +20,24 @@ def run_aircraft_recovery() -> None:
 
     m.setObjective(
         (
-            quicksum(oc[t,f] * x[t, f] for t in T for f in F_t[t])
+            quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
             + quicksum(fc[f] * gamma[f] for f in F)
             + quicksum(dc[f] * deltaA[f] for f in F)
             + quicksum(
-                rc[P.index(p),pd]
+                rc[P.index(p), pd]
                 * (
                     h[P.index(p), pd, v]
-                    - quicksum(theta[v,P.index(p),pd,g] * beta[v, P.index(p), pd, g] for g in Z)
+                    - quicksum(
+                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
+                        for g in Z
+                    )
                 )
                 for v in Y
                 for p in P
                 for pd in CO_p[P.index(p)]
             )
             + quicksum(
-                pc[g, P.index(p),pd] * beta[v, P.index(p), pd, g]
+                pc[g, P.index(p), pd] * beta[v, P.index(p), pd, g]
                 for v in Y
                 for p in P
                 for pd in CO_p[P.index(p)]
@@ -42,7 +45,7 @@ def run_aircraft_recovery() -> None:
             )
             + kappa
             * quicksum(
-                x[t, f] - 2 * x_hat[f,t] * x[t, f] + x_hat[f,t]
+                x[t, f] - 2 * x_hat[f, t] * x[t, f] + x_hat[f, t]
                 for t in T
                 for f in F_t[t]
             )
@@ -56,8 +59,8 @@ def run_aircraft_recovery() -> None:
     airport_slot_constraints(m, variables)
     flight_delay_constraints(m, variables)
     itinerary_feasibility_constraints(m, variables)
-    itinerary_delay_constraints(m, variables)
-    beta_linearizing_constraints(m, variables)
+    # itinerary_delay_constraints(m, variables)
+    # beta_linearizing_constraints(m, variables)
 
     m.optimize()
 
@@ -223,7 +226,7 @@ def sequencing_and_fleet_size_constraints(
     sfsc_6 = {
         (t, k): m.addConstr(
             quicksum(phi[t, f] for f in list(set(F_t[t]).intersection(FD_k[k])))
-            <= tb[t,k]
+            <= tb[t, k]
         )
         for t in T
         for k in K
@@ -241,14 +244,19 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
     # different from their originally scheduled itinerary (this include a null itinerary
     # if reassignment is not possible during the recovery period)
     pfc_1 = {
-        (P.index(p), v): m.addConstr(quicksum(h[P.index(p), pd, v] for pd in CO_p[P.index(p)]) == n[v,P.index(p)])
+        (P.index(p), v): m.addConstr(
+            quicksum(h[P.index(p), pd, v] for pd in CO_p[P.index(p)])
+            == n[v, P.index(p)]
+        )
         for p in P
         for v in Y
     }
 
     # Passengers can be reassigned only to non-disrupted itineraries
     pfc_2 = {
-        (P.index(p), v, pd): m.addConstr(h[P.index(p), pd, v] <= (1 - lambd[pd]) * n[v,P.index(p)])
+        (P.index(p), v, pd): m.addConstr(
+            h[P.index(p), pd, v] <= (1 - lambd[pd]) * n[v, P.index(p)]
+        )
         for p in P
         for v in Y
         for pd in CO_p[P.index(p)]
@@ -262,7 +270,10 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
             >= quicksum(
                 (
                     h[P.index(p), pd, v]
-                    - quicksum(theta[v,P.index(p),pd,g] * beta[v, P.index(p), pd, g] for g in Z)
+                    - quicksum(
+                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
+                        for g in Z
+                    )
                 )
                 for v in Y
                 for p in P
@@ -364,8 +375,8 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         (f, fd, t): m.addConstr(
             deltaD[fd]
             >= deltaA[f]
-            + mtt[t,f,fd]
-            - ct[f,fd]
+            + mtt[t, f, fd]
+            - ct[f, fd]
             - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
         )
         for f in F
@@ -391,14 +402,14 @@ def itinerary_feasibility_constraints(
         if f in P[p]
     }
 
-    import pdb; pdb.set_trace()
     ifc_2 = {
-        p : m.addConstr(
-            std[CF_p[P.index(p)][1]] + deltaD[CF_p[P.index(p)][1]] - sta[CF_p[P.index(p)][0]] - deltaA[CF_p[P.index(p)][0]]
-            >= mct[CF_p[P.index(p)][0]][CF_p[P.index(p)][1]][P.index(p)] - BIG_M * lambd[P.index(p)]
+        (P.index(p), (f, fd)): m.addConstr(
+            std[fd] + deltaD[fd] - sta[f] - deltaA[f]
+            >= mct[P.index(p), f, fd] - BIG_M * lambd[P.index(p)]
         )
         for p in P
-        if CF_p[P.index(p)]
+        for (f, fd) in CF_p[P.index(p)]
+        if CF_p[P.index(p)] != []
     }
 
 
@@ -415,8 +426,8 @@ def itinerary_delay_constraints(
     idc_1 = {
         (p, pd): m.addConstr(
             tao[p, pd]
-            == quicksum(lf[fd][pd] * (deltaA[fd] + sta[fd]) for fd in F)
-            - quicksum(lf[f][p] * sta[f] for f in F)
+            == quicksum(lf[pd,fd] * (deltaA[fd] + sta[fd]) for fd in F)
+            - quicksum(lf[p,f] * sta[f] for f in F)
         )
         for p in range(len(P))
         for pd in CO_p[p]

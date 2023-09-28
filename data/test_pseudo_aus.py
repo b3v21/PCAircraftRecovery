@@ -210,9 +210,9 @@ def create_graph():
     current_node_id = 0
     current_flight_id = 0
     graph = AdjanecyList()
-    num_flights = floor(random.normalvariate(100, 8))
+    num_flights = floor(random.normalvariate(8, 1))
     flight_distribution = divide_number(
-        num_flights, len(AIRPORTS), floor(num_flights / 10), floor(num_flights / 3)
+        num_flights, len(AIRPORTS), 0, 3
     )
 
     for count, node in enumerate(default_nodes):
@@ -275,7 +275,10 @@ def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> l
     return P
 
 
+random.seed(690)
 graph = create_graph()
+for node, neighs in graph.adj_list.items():
+    print(node, neighs)
 
 num_flights = graph.count_all_flights()
 num_tails = graph.count_all_flights()  # This is somewhat arbitrary
@@ -294,7 +297,7 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: 40, 2: 2, 3: 2, 4: 2}
+itin_classes = {1: 5, 2: 1}
 
 try:
     P = generate_itineraries(graph, itin_classes)
@@ -345,8 +348,9 @@ FA_k = {k: [] for k in K}
 for dep_node in graph.adj_list.keys():
     arr_nodes = graph.get_neighbours(dep_node)
     for node in arr_nodes:
-        FA_k[node[0].get_name()] += [f for f in F if f in list(zip(*arr_nodes))[1]]
-
+        if node[1] is not None:
+            FA_k[node[0].get_name()] += [node[1]]   
+        
 # Set of flights f which depart from airport k
 FD_k = {k: [] for k in K}
 
@@ -356,15 +360,15 @@ for k in K:
         FD_k[k] += [f for f in F if f in list(zip(*graph.get_neighbours(node)))[1]]
 
 # THESE ARENT USED IN THE ACTUAL MODEL, JUST USED TO PRODUCE DATA BELOW
-AK_f = {}
-for airport, flights in FA_k.items():
-    for flight in flights:
-        AK_f[flight] = airport
-
 DK_f = {}
 for airport, flights in FD_k.items():
     for flight in flights:
         DK_f[flight] = airport
+
+AK_f = {}
+for airport, flights in FA_k.items():
+    for flight in flights:
+        AK_f[flight] = airport
 
 # Set of flights fd compatible with a connection from flight f
 # fd is compatible if it is scheduled to depart from the arrival airport of flight f
@@ -387,6 +391,7 @@ CO_p = {
     if p != []
 }
 
+
 # Cost of operating flight f with tail t
 oc = {(t, f): 1500 for t in T for f in F}
 
@@ -395,10 +400,10 @@ dc = {f: 100 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v, P.index(p)): 50 for v in Y for p in P}
+n = {(v, P.index(p)): 10 for v in Y for p in P}
 
 # Seating capacity of tail t in T
-q = {t: 100 for t in T}
+q = {t: 300 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
@@ -421,23 +426,24 @@ scD = {dsl: 1 for dsl in DA}
 sb = {f: 0 for f in F}
 
 # minimum turn time between flight f and fd with tail t
-mtt = {(t, f, f): 0 for t in T for f in F for fd in F}
+mtt = {(t, f, fd): 0 for t in T for f in F for fd in F}
 
 # minimum connection time between flight f and fd in itinerary p
-mct = {(P.index(p), f, f): 0 for p in P for f in F for fd in F}
+mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
 
 # Planned connection time between flights f and fd. It equals scheduled departure time of
 # flight fd minus the scheduled arrival time of flight f.
 ct = {(f, fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
 
 # set of ordered flight pairs of consecutive flights in itinary p.
-CF_p = {P.index(p): [(f, f + 1) for f in p[:-1]] for p in P if len(p) > 1}
+CF_p = {
+    P.index(p): [(p[i], p[i + 1]) for i, _ in enumerate(p[:-1])]
+    for p in P
+}
 
 # One if flight f is the last flight of itinerary p, and zero otherwise.
 lf = {
-    (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1])
-    for p in P
-    for f in F
+    (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1]) for p in P for f in F
 }
 
 # Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
@@ -461,12 +467,10 @@ kappa = 100
 for node in graph.adj_list.keys():
     for neigh, flight_id in graph.get_neighbours(node):
         if flight_id != None:
-            x_hat = {(f, t): 1 if flight_id == f else 0 for f in F for t in T}
+            x_hat = {(f, t): 1 if t == f else 0 for f in F for t in T}
 
 # Starting location of planes (binary)
 tb = {(t, k): 0 for t in T for k in K}
 tail_count = 0
 for flight, airport in DK_f.items():
-    tb[tail_count, airport] = 1
-    tail_count += 1
-
+    tb[flight, airport] = 1

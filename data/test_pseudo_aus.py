@@ -32,6 +32,19 @@ import numpy as np
 random.seed(69)
 
 TIME_HORIZON = 72
+AIRPORTS = ["SYD", "MEL", "BNE", "PER", "ADL", "OOL", "CNS", "HBA", "CBR", "TSV"]
+COORDS = [
+    (-33.949995, 151.181705),
+    (-37.673333, 144.843333),
+    (-27.386944, 153.1175),
+    (-31.940278, 115.966944),
+    (-34.945, 138.530556),
+    (-28.164444, 153.505278),
+    (-16.885833, 145.755278),
+    (-42.836111, 147.510278),
+    (-35.306944, 149.195),
+    (-19.2525, 146.765278),
+]
 
 
 class Node:
@@ -57,7 +70,7 @@ class Node:
 
     def get_id(self):
         return self.id
-    
+
     def get_name(self):
         return self.name
 
@@ -97,18 +110,7 @@ class AdjanecyList:
         return self.adj_list.keys()
 
     def count_node_locations(self):
-        counts = {
-            "SYD": 0,
-            "MEL": 0,
-            "BNE": 0,
-            "PER": 0,
-            "ADL": 0,
-            "OOL": 0,
-            "CNS": 0,
-            "HBA": 0,
-            "CBR": 0,
-            "TSV": 0,
-        }
+        counts = {k: 0 for k in AIRPORTS}
         for node in self.adj_list.keys():
             counts[node.name] += 1
         return counts
@@ -123,16 +125,7 @@ class AdjanecyList:
 def create_graph():
     # Create default nodes
     default_nodes = [
-        Node(0, "SYD", -33.949995, 151.181705, None),
-        Node(0, "BNE", -27.386944, 153.1175, None),
-        Node(0, "MEL", -37.673333, 144.843333, None),
-        Node(0, "PER", -31.940278, 115.966944, None),
-        Node(0, "ADL", -34.945, 138.530556, None),
-        Node(0, "OOL", -28.164444, 153.505278, None),
-        Node(0, "CNS", -16.885833, 145.755278, None),
-        Node(0, "HBA", -42.836111, 147.510278, None),
-        Node(0, "CBR", -35.306944, 149.195, None),
-        Node(0, "TSV", -19.2525, 146.765278, None),
+        Node(0, airport, coords[0], coords[1], None) for airport, coords in zip(AIRPORTS, COORDS)
     ]
 
     current_node_id = 0
@@ -261,35 +254,42 @@ def extract_data(graph: AdjanecyList) -> None:
     AA = [(t, t + 0.25) for t in np.arange(0, TIME_HORIZON, 0.25)]
 
     # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
-    AAF = {f : [i for i, slot in enumerate(AA) if sta[f] <= slot[1] and sta[f] >= slot[0]] for f in F}
-    DAF = {f : [i for i, slot in enumerate(AA) if std[f] <= slot[1] and std[f] >= slot[0]] for f in F}
-    
+    AAF = {
+        f: [i for i, slot in enumerate(AA) if sta[f] <= slot[1] and sta[f] >= slot[0]]
+        for f in F
+    }
+    DAF = {
+        f: [i for i, slot in enumerate(AA) if std[f] <= slot[1] and std[f] >= slot[0]]
+        for f in F
+    }
+
     # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
-    FAA = {asl : [f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA}
+    FAA = {asl: [f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA}
     FDA = {dsl: [f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA}
-    
+
     # set of flights compatible with tail T
     # (currently every flight is compatible with every tail)
-    F_t = {t : list(F) for t in T}
-    
+    F_t = {t: list(F) for t in T}
+
     # set of tails compatible with flight F
-    T_f = {f : [t for t in T if f in F_t[t]] for f in F}
-    
+    T_f = {f: [t for t in T if f in F_t[t]] for f in F}
+
     # Set of flights f which arrive to airport k
-    FA_k = {k : [] for k in K}
-    
+    FA_k = {k: [] for k in K}
+
     for dep_node in graph.get_all_nodes():
         arr_nodes = graph.get_neighbours(dep_node)
         for node in arr_nodes:
             FA_k[node[0].get_name()] += [f for f in F if f in list(zip(*arr_nodes))[1]]
-    
+
     # Set of flights f which depart from airport k
-    FD_k = {k : [] for k in K}
-    
+    FD_k = {k: [] for k in K}
+
     for k in K:
         airport_nodes = graph.get_nodes(k)
         for node in airport_nodes:
             FD_k[k] += [f for f in F if f in list(zip(*graph.get_neighbours(node)))[1]]
+
 
 if __name__ == "__main__":
     graph = create_graph()

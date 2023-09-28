@@ -46,6 +46,8 @@ COORDS = [
     (-19.2525, 146.765278),
 ]
 
+WEIGHTS = [0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
+
 
 class Node:
     def __init__(self, node_id, name, lat, long, time):
@@ -125,7 +127,8 @@ class AdjanecyList:
 def create_graph():
     # Create default nodes
     default_nodes = [
-        Node(0, airport, coords[0], coords[1], None) for airport, coords in zip(AIRPORTS, COORDS)
+        Node(0, airport, coords[0], coords[1], None)
+        for airport, coords in zip(AIRPORTS, COORDS)
     ]
 
     current_node_id = 0
@@ -145,15 +148,9 @@ def create_graph():
             neighbours = []
 
             # Randomise destination airport
-            dest_node = random.choices(
-                default_nodes,
-                weights=[0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
-            )[0]
+            dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
             while dest_node == node:
-                dest_node = random.choices(
-                    default_nodes,
-                    weights=[0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
-                )[0]
+                dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
 
             # Randomise time flight is scheduled to depart
             departure_time = round(random.random() * TIME_HORIZON, 1)
@@ -223,7 +220,7 @@ def extract_data(graph: AdjanecyList) -> None:
     # Sets
     T = range(num_tails)
     F = range(num_flights)
-    K = ["SYD", "MEL", "BNE", "PER", "ADL", "OOL", "CNS", "HBA", "CBR", "TSV"]
+    K = AIRPORTS
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
 

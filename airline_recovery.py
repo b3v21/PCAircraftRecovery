@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_passenger_itinerary_disruption import *
+from data.test_pseudo_aus import *
 
 BIG_M = 999999999
 
@@ -20,29 +20,29 @@ def run_aircraft_recovery() -> None:
 
     m.setObjective(
         (
-            quicksum(oc[t][f] * x[t, f] for t in T for f in F_t[t])
+            quicksum(oc[t,f] * x[t, f] for t in T for f in F_t[t])
             + quicksum(fc[f] * gamma[f] for f in F)
             + quicksum(dc[f] * deltaA[f] for f in F)
             + quicksum(
-                rc[p][pd]
+                rc[P.index(p),pd]
                 * (
-                    h[p, pd, v]
-                    - quicksum(theta[v][p][pd][g] * beta[v, p, pd, g] for g in Z)
+                    h[P.index(p), pd, v]
+                    - quicksum(theta[v,P.index(p),pd,g] * beta[v, P.index(p), pd, g] for g in Z)
                 )
                 for v in Y
-                for p in range(len(P))
-                for pd in CO_p[p]
+                for p in P
+                for pd in CO_p[P.index(p)]
             )
             + quicksum(
-                pc[p][pd][g] * beta[v, p, pd, g]
+                pc[g, P.index(p),pd] * beta[v, P.index(p), pd, g]
                 for v in Y
-                for p in range(len(P))
-                for pd in CO_p[p]
+                for p in P
+                for pd in CO_p[P.index(p)]
                 for g in Z
             )
             + kappa
             * quicksum(
-                x[t, f] - 2 * x_hat[t][f] * x[t, f] + x_hat[t][f]
+                x[t, f] - 2 * x_hat[f,t] * x[t, f] + x_hat[f,t]
                 for t in T
                 for f in F_t[t]
             )
@@ -223,7 +223,7 @@ def sequencing_and_fleet_size_constraints(
     sfsc_6 = {
         (t, k): m.addConstr(
             quicksum(phi[t, f] for f in list(set(F_t[t]).intersection(FD_k[k])))
-            <= tb[t][k]
+            <= tb[t,k]
         )
         for t in T
         for k in K
@@ -241,17 +241,17 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
     # different from their originally scheduled itinerary (this include a null itinerary
     # if reassignment is not possible during the recovery period)
     pfc_1 = {
-        (p, v): m.addConstr(quicksum(h[p, pd, v] for pd in CO_p[p]) == n[v][p])
-        for p in range(len(P))
+        (P.index(p), v): m.addConstr(quicksum(h[P.index(p), pd, v] for pd in CO_p[P.index(p)]) == n[v,P.index(p)])
+        for p in P
         for v in Y
     }
 
     # Passengers can be reassigned only to non-disrupted itineraries
     pfc_2 = {
-        (p, v, pd): m.addConstr(h[p, pd, v] <= (1 - lambd[pd]) * n[v][p])
-        for p in range(len(P))
+        (P.index(p), v, pd): m.addConstr(h[P.index(p), pd, v] <= (1 - lambd[pd]) * n[v,P.index(p)])
+        for p in P
         for v in Y
-        for pd in CO_p[p]
+        for pd in CO_p[P.index(p)]
     }
 
     # The number of passengers that do show up for their reassigned itineraries does not
@@ -261,12 +261,12 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
             quicksum(q[t] * x[t, f] for t in T_f[f])
             >= quicksum(
                 (
-                    h[p, pd, v]
-                    - quicksum(theta[v][p][pd][g] * beta[v, p, pd, g] for g in Z)
+                    h[P.index(p), pd, v]
+                    - quicksum(theta[v,P.index(p),pd,g] * beta[v, P.index(p), pd, g] for g in Z)
                 )
                 for v in Y
-                for p in range(len(P))
-                for pd in CO_p[p]
+                for p in P
+                for pd in CO_p[P.index(p)]
                 if f in P[pd]
             )
         )
@@ -308,8 +308,8 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
 
     # Arrival slot capacity limit
     asc_4 = {
-        asl: m.addConstr(quicksum(vA[asl, f] for f in FAA[asl]) <= scA[asl])
-        for asl in range(len(AA))
+        asl: m.addConstr(quicksum(vA[AA.index(asl), f] for f in FAA[asl]) <= scA[asl])
+        for asl in AA
     }
 
     # Start time of departure slot asl is no later than the combined scheduled departure
@@ -341,8 +341,8 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
 
     # Departure slot capacity limit
     asc_8 = {
-        dsl: m.addConstr(quicksum(vD[dsl, f] for f in FDA[dsl]) <= scD[dsl])
-        for dsl in range(len(DA))
+        dsl: m.addConstr(quicksum(vD[DA.index(dsl), f] for f in FDA[dsl]) <= scD[dsl])
+        for dsl in DA
     }
 
 
@@ -364,8 +364,8 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         (f, fd, t): m.addConstr(
             deltaD[fd]
             >= deltaA[f]
-            + mtt[f][fd][t]
-            - ct[f][fd]
+            + mtt[t,f,fd]
+            - ct[f,fd]
             - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
         )
         for f in F
@@ -391,13 +391,14 @@ def itinerary_feasibility_constraints(
         if f in P[p]
     }
 
+    import pdb; pdb.set_trace()
     ifc_2 = {
-        p: m.addConstr(
-            std[CF_p[p][1]] + deltaD[CF_p[p][1]] - sta[CF_p[p][0]] - deltaA[CF_p[p][0]]
-            >= mct[CF_p[p][0]][CF_p[p][1]][p] - BIG_M * lambd[p]
+        p : m.addConstr(
+            std[CF_p[P.index(p)][1]] + deltaD[CF_p[P.index(p)][1]] - sta[CF_p[P.index(p)][0]] - deltaA[CF_p[P.index(p)][0]]
+            >= mct[CF_p[P.index(p)][0]][CF_p[P.index(p)][1]][P.index(p)] - BIG_M * lambd[P.index(p)]
         )
-        for p in range(len(P))
-        if CF_p[p]
+        for p in P
+        if CF_p[P.index(p)]
     }
 
 

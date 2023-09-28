@@ -119,10 +119,10 @@ class AdjanecyList:
             if True in [(lambda x: x[1] != None)(n) for n in self.get_neighbours(node)]:
                 counts[node.name] += 1
         return counts
-    
+
     def get_first_n_flights(self, n):
         pass
-            
+
     def __repr__(self):
         output = ""
         for node, neighbours in self.adj_list.items():
@@ -144,15 +144,9 @@ def generate_flight_arc(
     neighbours = []
 
     # Randomise destination airport
-    dest_node = random.choices(
-        default_nodes,
-        weights=[0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
-    )[0]
+    dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
     while dest_node == node:
-        dest_node = random.choices(
-            default_nodes,
-            weights=[0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
-        )[0]
+        dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
 
     # Randomise time flight is scheduled to depart
     departure_time = round(random.random() * TIME_HORIZON, 1)
@@ -270,7 +264,9 @@ def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> l
 
 def extract_data(graph: AdjanecyList) -> None:
     num_flights = sum(graph.count_node_locations().values())
-    num_tails = sum(graph.count_node_locations().values())  # This is somewhat arbitrary (up to us to decide size of fleet)
+    num_tails = sum(
+        graph.count_node_locations().values()
+    )  # This is somewhat arbitrary (up to us to decide size of fleet)
     num_airports = 10
     num_fare_classes = 2  # This is somewhat arbitrary
     num_delay_levels = 2  # This is somewhat arbitrary
@@ -378,53 +374,63 @@ def extract_data(graph: AdjanecyList) -> None:
         for p in P
         if p != []
     }
-    
+
     # Cost of operating flight f with tail t
-    oc = {(t,f) : 1500 for t in T for f in F}
+    oc = {(t, f): 1500 for t in T for f in F}
 
     # Delay cost per minute of arrival delay of flight f
-    dc = {f : 100 for f in F}
+    dc = {f: 100 for f in F}
 
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
-    n= {(v,P.index(p)) : 50 for v in Y for p in P}
+    n = {(v, P.index(p)): 50 for v in Y for p in P}
 
     # Seating capacity of tail t in T
     q = {t: 100 for t in T}
-    
+
     # Reaccommodation Cost for a passenger reassigned from p to pd.
-    rc = {(P.index(p), P.index(pd)) : (lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P for pd in P}
-    
+    rc = {
+        (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 0.5)(p, pd)
+        for p in P
+        for pd in P
+    }
+
     # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
     # zeta
-    theta = {(y,P.index(p),P.index(pd),z) : 0 for y in Y for p in P for pd in P for z in Z}
+    theta = {
+        (y, P.index(p), P.index(pd), z): 0 for y in Y for p in P for pd in P for z in Z
+    }
 
     # Capacity of arrival and departure slots
     scA = {f: 1 for f in F}
     scD = {f: 1 for f in F}
-    
+
     # Scheduled buffer time for each flight (set to 0 for now)
-    sb = {f :0 for f in F}
+    sb = {f: 0 for f in F}
 
     # minimum turn time between flight f and fd with tail t
-    mtt = {(t,f,f) : 0 for t in T for f in F for fd in F}
+    mtt = {(t, f, f): 0 for t in T for f in F for fd in F}
 
     # minimum connection time between flight f and fd in itinerary p
-    mct = {(P.index(p),f,f) : 0 for p in P for f in F for fd in F}
-    
+    mct = {(P.index(p), f, f): 0 for p in P for f in F for fd in F}
+
     # Planned connection time between flights f and fd. It equals scheduled departure time of
     # flight fd minus the scheduled arrival time of flight f.
-    ct = {(f,fd) : max(0, std[fd] - sta[f]) for fd in F for f in F}
+    ct = {(f, fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
 
     # set of ordered flight pairs of consecutive flights in itinary p.
-    CF_p = {P.index(P) : [(f,f+1) for f in p[:-1]] for p in P if len(p) > 1}
+    CF_p = {P.index(P): [(f, f + 1) for f in p[:-1]] for p in P if len(p) > 1}
 
     # One if flight f is the last flight of itinerary p, and zero otherwise.
-    lf = {(P.index(p),f) : (lambda last: 1 if last == f else 0)(p[-1]) for p in P for f in F}
+    lf = {
+        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1])
+        for p in P
+        for f in F
+    }
 
     # Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
-    small_theta = {z : 1000 for z in Z}
-    
+    small_theta = {z: 1000 for z in Z}
+
     # Extra fuel cost for delay absorption (through cruise speed increases) per minute for
     # flight f.
     fc = {f: 100 for f in F}
@@ -433,25 +439,26 @@ def extract_data(graph: AdjanecyList) -> None:
     # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
     # the passenger’s destination arrival delay via itinerary p′ compared with the planned
     # arrival time of itinerary p corresponds to delay level ζ
-    pc = {(z,P.index(p),P.index(pd)): 0 for z in Z for p in P for pd in P}
+    pc = {(z, P.index(p), P.index(pd)): 0 for z in Z for p in P for pd in P}
 
     # Per-flight schedule change penalty for not operating the flight using the originally
     # planned tail.
-    kappa = 100    
+    kappa = 100
 
     # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
     for node in graph.adj_list.keys():
         for neigh, flight_id in graph.get_neighbours(node):
             if flight_id != None:
-                x_hat = {(f,t) : 1 if flight_id == f else 0 for f in F for t in T}
-    
+                x_hat = {(f, t): 1 if flight_id == f else 0 for f in F for t in T}
+
     # Starting location of planes (binary)
-    tb = {(t,k) : 0 for t in T for k in K}
+    tb = {(t, k): 0 for t in T for k in K}
     tail_count = 0
     for flight, airport in DK_f.items():
         tb[tail_count, airport] = 1
-        tail_count +=1 
-    
+        tail_count += 1
+
+
 if __name__ == "__main__":
     graph = create_graph()
     print(graph.count_node_locations())

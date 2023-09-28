@@ -287,6 +287,25 @@ def extract_data(graph: AdjanecyList) -> None:
         for node in airport_nodes:
             FD_k[k] += [f for f in F if f in list(zip(*graph.get_neighbours(node)))[1]]
 
+    # THESE ARENT USED IN THE ACTUAL MODEL, JUST USED TO PRODUCE DATA BELOW
+    AK_f = {}
+    for airport, flights in FA_k.items():
+        for flight in flights:
+            AK_f[flight] = airport
+
+    DK_f = {}
+    for airport, flights in FD_k.items():
+        for flight in flights:
+            DK_f[flight] = airport
+
+    # Set of flights fd compatible with a connection from flight f
+    # fd is compatible if it is scheduled to depart from the arrival airport of flight f
+    # and the scheduled arrival of f is before the scheduled departure of fd
+    CF_f = {
+        f: [fd for fd in F if AK_f[f] == DK_f[fd] and sta[f] <= std[fd] and fd != f]
+        for f in F
+    }
+
 
 if __name__ == "__main__":
     graph = create_graph()

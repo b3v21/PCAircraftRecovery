@@ -312,7 +312,7 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         for asl in AAF[f]
     }
 
-    # Each non-cancelled flight is assigned exactly one arrival slot
+    # # Each non-cancelled flight is assigned exactly one arrival slot
     asc_3 = {
         f: m.addConstr(quicksum(vA[asl, f] for asl in AAF[f]) == 1 - z[f]) for f in F
     }
@@ -350,7 +350,7 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         f: m.addConstr(quicksum(vD[dsl, f] for dsl in DAF[f]) == 1 - z[f]) for f in F
     }
 
-    # Departure slot capacity limit
+    # # Departure slot capacity limit
     asc_8 = {
         dsl: m.addConstr(quicksum(vD[DA.index(dsl), f] for f in FDA[dsl]) <= scD[dsl])
         for dsl in DA

@@ -172,7 +172,7 @@ def generate_flight_arc(
         dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
 
     # Randomise time flight is scheduled to depart
-    departure_time = round(random.random() * TIME_HORIZON, 1)
+    departure_time = round(random.random() * TIME_HORIZON - 2, 1) # TODO: this needs to be changed when flight times are changed
     departure_node = node.new_time_copy(departure_time, current_node_id)
 
     # if departure_node in graph.adj_list:
@@ -327,7 +327,7 @@ AAF = {
     for f in F
 }
 DAF = {
-    f: [i for i, slot in enumerate(AA) if std[f] <= slot[1] and std[f] >= slot[0]]
+    f: [i for i, slot in enumerate(DA) if std[f] <= slot[1] and std[f] >= slot[0]]
     for f in F
 }
 

@@ -381,7 +381,7 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         )
         for f in F
         for fd in CF_f[f]
-        for t in list(set(T_f[f]).intersection(T_f[fd]))
+        for t in list(set(T_f[f]).intersection(set(T_f[fd])))
     }
 
 

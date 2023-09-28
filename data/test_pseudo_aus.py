@@ -28,6 +28,19 @@
 import copy
 import random
 import numpy as np
+from math import floor
+
+from random import randrange
+
+
+def divide_number(number, divider, min_value, max_value):
+    result = []
+    for i in range(divider - 1, -1, -1):
+        part = randrange(min_value, min(max_value, number - i * min_value + 1))
+        result.append(part)
+        number -= part
+    return result
+
 
 TIME_HORIZON = 72
 AIRPORTS = ["SYD", "MEL", "BNE", "PER", "ADL", "OOL", "CNS", "HBA", "CBR", "TSV"]
@@ -87,7 +100,7 @@ class AdjanecyList:
     def __init__(self):
         self.adj_list = {}
 
-    def add_node(self, node: Node, neighbours: Node, flight_id: int):
+    def add_node(self, node: Node, neighbours: list[Node], flight_id: int):
         self.adj_list[node] = []
         for neighbour in neighbours:
             self.adj_list[node].append((neighbour, flight_id))
@@ -120,6 +133,14 @@ class AdjanecyList:
                 counts[node.name] += 1
         return counts
 
+    def count_all_flights(self):
+        count = 0
+        for node in self.adj_list.keys():
+            count += sum(
+                [(lambda x: x[1] != None)(n) for n in self.get_neighbours(node)]
+            )
+        return count
+
     def get_first_n_flights(self, n):
         pass
 
@@ -141,8 +162,6 @@ def generate_flight_arc(
     Generate arc which travel to a randomized airport at a randomized flight time.
     """
 
-    neighbours = []
-
     # Randomise destination airport
     dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
     while dest_node == node:
@@ -152,17 +171,12 @@ def generate_flight_arc(
     departure_time = round(random.random() * TIME_HORIZON, 1)
     departure_node = node.new_time_copy(departure_time, current_node_id)
 
-    if departure_node in graph.adj_list:
-        graph.add_neigh_to_node(
-            departure_node,
-            dest_node.new_time_copy(departure_time + 2, current_node_id + 1),
-            current_flight_id,
-        )
-    else:
-        neighbours.append(
-            dest_node.new_time_copy(departure_time + 2, current_node_id + 1)
-        )
-        graph.add_node(departure_node, neighbours, current_flight_id)
+    # if departure_node in graph.adj_list:
+    graph.add_neigh_to_node(
+        departure_node,
+        dest_node.new_time_copy(departure_time + 2, current_node_id + 1),
+        current_flight_id,
+    )
 
 
 def generate_ground_arcs(graph: AdjanecyList) -> None:
@@ -192,17 +206,15 @@ def create_graph():
     current_node_id = 0
     current_flight_id = 0
     graph = AdjanecyList()
-    flights_remaining = int(random.normalvariate(100, 8))
+    num_flights = floor(random.normalvariate(100, 8))
+    flight_distribution = divide_number(
+        num_flights, len(AIRPORTS), floor(num_flights / 10), floor(num_flights / 3)
+    )
 
-    for node in default_nodes:
-        if node.name == "SYD":
-            flights_used = random.randrange(
-                int(0.25 * flights_remaining), int(0.35 * flights_remaining)
-            )
-        else:
-            flights_used = random.randrange(0, int(0.3 * flights_remaining))
+    for count, node in enumerate(default_nodes):
+        flights_for_node = flight_distribution[count]
 
-        for _ in range(0, flights_used):
+        for _ in range(flights_for_node):
             generate_flight_arc(
                 graph,
                 node,
@@ -212,7 +224,6 @@ def create_graph():
             )
             current_node_id += 1
             current_flight_id += 1
-        flights_remaining -= flights_used
 
     generate_ground_arcs(graph)
 
@@ -261,10 +272,8 @@ def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> l
 
 
 def extract_data(graph: AdjanecyList) -> None:
-    num_flights = sum(graph.count_node_locations().values())
-    num_tails = sum(
-        graph.count_node_locations().values()
-    )  # This is somewhat arbitrary (up to us to decide size of fleet)
+    num_flights = graph.count_all_flights()
+    num_tails = graph.count_all_flights()  # This is somewhat arbitrary
     num_airports = 10
     num_fare_classes = 2  # This is somewhat arbitrary
     num_delay_levels = 2  # This is somewhat arbitrary
@@ -280,7 +289,7 @@ def extract_data(graph: AdjanecyList) -> None:
     # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
     # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-    itin_classes = {1: 2, 2: 2, 3: 2, 4: 2}
+    itin_classes = {1: 40, 2: 2, 3: 2, 4: 2}
 
     try:
         P = generate_itineraries(graph, itin_classes)
@@ -288,6 +297,7 @@ def extract_data(graph: AdjanecyList) -> None:
         print("ERROR: Recursion depth exceeded, please reduce itinerary length")
         return
 
+    print(f"There are {num_flights} flights")
     [print(p) for p in P]
 
     # Construct arrival and departure times

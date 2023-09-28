@@ -196,7 +196,7 @@ def create_graph():
     current_node_id = 0
     current_flight_id = 0
     graph = AdjanecyList()
-    flights_remaining = int(random.normalvariate(20, 8))
+    flights_remaining = int(random.normalvariate(100, 8))
 
     for node in default_nodes:
         if node.name == "SYD":
@@ -242,7 +242,12 @@ def itinerary_builder(
         next_options = graph.get_neighbours(itin[-1][0])
         if not next_options:  # Try to find another way
             return itinerary_builder(graph, length, [], P)
-        itin.append(random.choice(next_options))
+        for option in next_options:
+            if itin[-1][1] != option[1]:
+                itin.append(option)
+                break
+        else:
+            return itinerary_builder(graph, length, [], P)
 
     return itinerary_builder(graph, length, itin, P)
 
@@ -279,7 +284,7 @@ def extract_data(graph: AdjanecyList) -> None:
     # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
     # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-    itin_classes = {1: 5, 2: 2, 3: 2}
+    itin_classes = {1: 2, 2: 2, 3: 2, 4: 2}
 
     try:
         P = generate_itineraries(graph, itin_classes)

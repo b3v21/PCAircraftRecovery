@@ -239,12 +239,12 @@ def itinerary_builder(
         neighbours = []
         while not neighbours:
             neighbours = graph.get_neighbours(random.choice(graph.get_all_nodes()))
-        itin.append(random.choice(list(neighbours))[1])
+        itin.append(random.choice(neighbours))
     else:
-        next_options = graph.get_neighbours(itin[-1])
+        next_options = graph.get_neighbours(itin[-1][0])
         if not next_options:  # Try to find another way
             return itinerary_builder(graph, length, [], P)
-        itin.append(random.choice(next_options)[1])
+        itin.append(random.choice(next_options))
 
     return itinerary_builder(graph, length, itin, P)
 
@@ -256,7 +256,11 @@ def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> l
         for _ in range(num_itins):
             P.append(itinerary_builder(graph, length, [], P))
 
-    return P
+    P_out = []
+    for p in P:
+        P_out.append([n[1] for n in p])
+
+    return P_out
 
 
 def extract_data(graph: AdjanecyList) -> None:
@@ -276,13 +280,16 @@ def extract_data(graph: AdjanecyList) -> None:
     # This represents the different types of itineraries which will be generated, in this case
     # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
     # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
-    # itin_classes = {2: 1}
 
-    # try:
-    #     P = generate_itineraries(graph, itin_classes)
-    # except RecursionError:
-    #     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-    #     return
+    itin_classes = {1: 5, 2: 2, 3: 2}
+
+    try:
+        P = generate_itineraries(graph, itin_classes)
+    except RecursionError:
+        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+        return
+
+    [print(p) for p in P]
 
     # Construct arrival and departure times
     # NOTE: THESE ARE LISTS IN PREV DATA FILES, NOW DICTS

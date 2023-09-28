@@ -144,15 +144,9 @@ def generate_flight_arc(
     neighbours = []
 
     # Randomise destination airport
-    dest_node = random.choices(
-        default_nodes,
-        weights=[0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
-    )[0]
+    dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
     while dest_node == node:
-        dest_node = random.choices(
-            default_nodes,
-            weights=[0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
-        )[0]
+        dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
 
     # Randomise time flight is scheduled to depart
     departure_time = round(random.random() * TIME_HORIZON, 1)

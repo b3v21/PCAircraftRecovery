@@ -29,8 +29,6 @@ import copy
 import random
 import numpy as np
 
-random.seed(69)
-
 TIME_HORIZON = 72
 AIRPORTS = ["SYD", "MEL", "BNE", "PER", "ADL", "OOL", "CNS", "HBA", "CBR", "TSV"]
 COORDS = [
@@ -58,10 +56,10 @@ class Node:
         self.time = time
 
     def __repr__(self):
-        return "Node({},{},{},{})".format(self.name, self.lat, self.long, self.time)
+        return f"{self.name}: {self.time}"
 
     def __str__(self):
-        return "Node({},{},{},{})".format(self.name, self.lat, self.long, self.time)
+        return f"{self.name}: {self.time}"
 
     def __eq__(self, __value: object) -> bool:
         if self.name == __value.name and self.time == __value.time:
@@ -90,7 +88,7 @@ class AdjanecyList:
     def __init__(self):
         self.adj_list = {}
 
-    def add_node(self, node, neighbours, flight_id):
+    def add_node(self, node: Node, neighbours: Node, flight_id: int):
         self.adj_list[node] = []
         for neighbour in neighbours:
             self.adj_list[node].append((neighbour, flight_id))
@@ -102,19 +100,25 @@ class AdjanecyList:
                 result.append(node)
         return result
 
-    def add_to_node(self, name, neighbour, flight_id):
-        self.adj_list[name].append((neighbour, flight_id))
+    def add_neigh_to_node(self, node: Node, neighbour: Node, flight_id: int):
+        if node in self.adj_list:
+            self.adj_list[node].append((neighbour, flight_id))
+        else:
+            self.adj_list[node] = [(neighbour, flight_id)]
 
-    def get_neighbours(self, node):
+    def get_neighbours(self, node: Node) -> list[Node]:
         return self.adj_list.get(node, [])
 
-    def get_all_nodes(self):
-        return self.adj_list.keys()
+    def get_all_nodes(self) -> list[Node]:
+        return list(self.adj_list.keys()) + sum(
+            [[t[0] for t in L] for L in self.adj_list.values()], []
+        )
 
     def count_node_locations(self):
         counts = {k: 0 for k in AIRPORTS}
         for node in self.adj_list.keys():
-            counts[node.name] += 1
+            if True in [(lambda x: x[1] != None)(n) for n in self.get_neighbours(node)]:
+                counts[node.name] += 1
         return counts
 
     def __repr__(self):
@@ -122,6 +126,64 @@ class AdjanecyList:
         for node, neighbours in self.adj_list.items():
             output += "{}: {}\n".format(node, str(neighbours))
         return output
+
+
+def generate_flight_arc(
+    graph: AdjanecyList,
+    node: Node,
+    default_nodes: list[Node],
+    current_flight_id: int,
+    current_node_id: int,
+) -> None:
+    """
+    Generate arc which travel to a randomized airport at a randomized flight time.
+    """
+
+    neighbours = []
+
+    # Randomise destination airport
+    dest_node = random.choices(
+        default_nodes,
+        weights=[0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
+    )[0]
+    while dest_node == node:
+        dest_node = random.choices(
+            default_nodes,
+            weights=[0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
+        )[0]
+
+    # Randomise time flight is scheduled to depart
+    departure_time = round(random.random() * TIME_HORIZON, 1)
+    departure_node = node.new_time_copy(departure_time, current_node_id)
+
+    if departure_node in graph.adj_list:
+        graph.add_neigh_to_node(
+            departure_node,
+            dest_node.new_time_copy(departure_time + 2, current_node_id + 1),
+            current_flight_id,
+        )
+    else:
+        neighbours.append(
+            dest_node.new_time_copy(departure_time + 2, current_node_id + 1)
+        )
+        graph.add_node(departure_node, neighbours, current_flight_id)
+
+
+def generate_ground_arcs(graph: AdjanecyList) -> None:
+    """
+    Given the current flight arcs in graph, generate all possible ground arcs from a given node,
+    i.e arcs which stay at the same airport until the next available flight.
+
+    To generate all ground arcs for a particular airport, we must first find all nodes with the
+    same airport name which are found in the . Then we must order those nodes by arrival time
+    """
+
+    flight_nodes = graph.get_all_nodes()
+
+    for n in flight_nodes:
+        for nd in flight_nodes:
+            if n.get_name() == nd.get_name() and n.get_time() < nd.get_time():
+                graph.add_neigh_to_node(n, nd, None)
 
 
 def create_graph():
@@ -133,7 +195,7 @@ def create_graph():
 
     current_node_id = 0
     current_flight_id = 0
-    adj_list = AdjanecyList()
+    graph = AdjanecyList()
     flights_remaining = int(random.normalvariate(20, 8))
 
     for node in default_nodes:
@@ -145,34 +207,20 @@ def create_graph():
             flights_used = random.randrange(0, int(0.3 * flights_remaining))
 
         for _ in range(0, flights_used):
-            neighbours = []
-
-            # Randomise destination airport
-            dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
-            while dest_node == node:
-                dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
-
-            # Randomise time flight is scheduled to depart
-            departure_time = round(random.random() * TIME_HORIZON, 1)
-            departure_node = node.new_time_copy(departure_time, current_node_id)
-
-            if departure_node in adj_list.get_all_nodes():
-                adj_list.add_to_node(
-                    departure_node,
-                    dest_node.new_time_copy(departure_time + 2, current_node_id + 1),
-                    current_flight_id,
-                )
-            else:
-                neighbours.append(
-                    dest_node.new_time_copy(departure_time + 2, current_node_id + 1)
-                )
-                adj_list.add_node(departure_node, neighbours, current_flight_id)
-
+            generate_flight_arc(
+                graph,
+                node,
+                default_nodes,
+                current_node_id,
+                current_flight_id,
+            )
             current_node_id += 1
             current_flight_id += 1
         flights_remaining -= flights_used
 
-    return adj_list
+    generate_ground_arcs(graph)
+
+    return graph
 
 
 def itinerary_builder(
@@ -186,11 +234,10 @@ def itinerary_builder(
         return itin
 
     if not itin:
-        itin.append(
-            random.choice(
-                list(graph.get_neighbours(random.choice(list(graph.get_all_nodes()))))
-            )[1]
-        )
+        neighbours = []
+        while not neighbours:
+            neighbours = graph.get_neighbours(random.choice(graph.get_all_nodes()))
+        itin.append(random.choice(list(neighbours))[1])
     else:
         next_options = graph.get_neighbours(itin[-1])
         if not next_options:  # Try to find another way
@@ -227,24 +274,25 @@ def extract_data(graph: AdjanecyList) -> None:
     # This represents the different types of itineraries which will be generated, in this case
     # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
     # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
-    itin_classes = {1: 5}
+    # itin_classes = {2: 1}
 
-    try:
-        P = generate_itineraries(graph, itin_classes)
-    except RecursionError:
-        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-        return
+    # try:
+    #     P = generate_itineraries(graph, itin_classes)
+    # except RecursionError:
+    #     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+    #     return
 
-    [print(p) for p in P]
+    # print(P)
 
     # Construct arrival and departure times
     # NOTE: THESE ARE LISTS IN PREV DATA FILES, NOW DICTS
     std = {}
     sta = {}
-    for n in graph.get_all_nodes():
+    for n in graph.adj_list.keys():
         for neigh, flight_id in graph.get_neighbours(n):
-            std[flight_id] = n.time
-            sta[flight_id] = neigh.time
+            if flight_id != None:
+                std[flight_id] = n.time
+                sta[flight_id] = neigh.time
 
     # Construct arrival and departure slots
     DA = [(t, t + 0.25) for t in np.arange(0, TIME_HORIZON, 0.25)]
@@ -274,7 +322,7 @@ def extract_data(graph: AdjanecyList) -> None:
     # Set of flights f which arrive to airport k
     FA_k = {k: [] for k in K}
 
-    for dep_node in graph.get_all_nodes():
+    for dep_node in graph.adj_list.keys():
         arr_nodes = graph.get_neighbours(dep_node)
         for node in arr_nodes:
             FA_k[node[0].get_name()] += [f for f in F if f in list(zip(*arr_nodes))[1]]

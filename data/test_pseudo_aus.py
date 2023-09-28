@@ -34,6 +34,10 @@ from random import randrange
 
 
 def divide_number(number, divider, min_value, max_value):
+    """
+    Code from online, used to divide a number into a given number of parts
+    """
+
     result = []
     for i in range(divider - 1, -1, -1):
         part = randrange(min_value, min(max_value, number - i * min_value + 1))

@@ -402,10 +402,10 @@ dc = {f: 100 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v, P.index(p)): 10 for v in Y for p in P}
+n = {(v, P.index(p)): 25 for v in Y for p in P}
 
 # Seating capacity of tail t in T
-q = {t: 300 for t in T}
+q = {t: 250 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {

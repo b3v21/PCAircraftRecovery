@@ -505,7 +505,14 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
         if not found_chained_flight:
             for t in T:
                 if x[t, f].x > 0.9 and (sigma[f].x < 0.9 or rho[f].x > 0.9):
-                    print(f"T{t}: F{f}")
+                    if t < 10 and f < 10:
+                        print(f"T0{t}: F0{f} \t {DK_f[f]} --> {AK_f[f]}")
+                    elif t < 10:
+                        print(f"T0{t}: F{f} \t {DK_f[f]} --> {AK_f[f]}")
+                    elif f < 10:
+                        print(f"T{t}: F0{f} \t {DK_f[f]} --> {AK_f[f]}")
+                    else:
+                        print(f"T{t}: F{f} \t {DK_f[f]} --> {AK_f[f]}")
 
     print("\nCancelled Flights:")
     for f in F:
@@ -531,7 +538,7 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                     if p != pd:
                         if int(h[p, pd, v].x) > 0:
                             print(
-                                f"    I{p} -> I{pd} (fare class: {v}) people: {int(h[p, pd, v].x)}"
+                                f"    I{p} {*P[p],} -> I{pd} {*P[pd],} (fare class: {v}) people reassigned: {int(h[p, pd, v].x)}"
                             )
 
     print("\n" + 72 * "-")

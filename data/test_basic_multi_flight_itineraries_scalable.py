@@ -79,14 +79,14 @@ for f in F:
     else:
         FD_k[1].append(f)
 
-departure_airport_of_f = {}
+DK_f = {}
 for f in F:
-    departure_airport_of_f[f] = -1
+    DK_f[f] = -1
 
 for f in F:
     for k in K:
         if f in FD_k[k]:
-            departure_airport_of_f[f] = k
+            DK_f[f] = k
 
 # Set of flights fd compatible with a connection from flight f
 # fd is compatible if it is scheduled to depart from the arrival airport of flight f

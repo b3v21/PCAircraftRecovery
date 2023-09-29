@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_basic_multi_flight_itineraries_scalable import *
+from data.test_psuedo_aus_simple import *
 
 BIG_M = 999999999
 
@@ -506,7 +506,10 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                     for t in T:
                         if x[t, f].x > 0.9 and x[t, fd].x > 0.9:
                             found_chained_flight = True
-                            print(f"T{t}: F{f} -> F{fd}")
+                            print(
+                                f"Tail {t}: F{f} -> F{fd} \t {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)}) \t {DK_f[fd]} ({round(std[fd] + deltaD[fd].x,1)}) -> {AK_f[fd]} ({round(sta[fd]+deltaA[fd].x,1)})"
+                            )
+                            
                             if found_chained_flight:
                                 break
                     if found_chained_flight:
@@ -520,19 +523,19 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                                 # These flight times include arr/dep delay
                                 if t < 10 and f < 10:
                                     print(
-                                        f"F0{f}: Tail 0{t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                        f"Tail 0{t}: F0{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
                                     )
                                 elif t < 10:
                                     print(
-                                        f"F{f}: Tail 0{t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                        f"Tail 0{t}: F{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
                                     )
                                 elif f < 10:
                                     print(
-                                        f"F0{f}: Tail {t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                        f"Tail {t}: F0{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
                                     )
                                 else:
                                     print(
-                                        f"F{f}: Tail {t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                        f"Tail {t}: F{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
                                     )
 
     cancelled = False
@@ -544,10 +547,12 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     if not cancelled:
         print("No Flights Cancelled")
 
+    disrupted_itins = False
     disrupted_passengers = 0
     print("\nDisrupted Itineraries:")
     for p in range(len(P)):
         if lambd[p].x > 0.9:
+            disrupted_itins = True
             print(f"I{p} disrupted:")
 
             for pd in range(len(P)):
@@ -555,9 +560,11 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                     if p != pd:
                         if int(h[p, pd, v].x) > 0:
                             print(
-                                f"    I{p} {*P[p],} --> I{pd} {*P[pd],} (FC: {v}) people reassigned: {int(h[p, pd, v].x)}"
+                                f"    I{p} {*P[p],} -> I{pd} {*P[pd],} (FC: {v}) people reassigned: {int(h[p, pd, v].x)}"
                             )
                             disrupted_passengers += int(h[p, pd, v].x)
+    if not disrupted_itins:
+        print("No Itineraries Disrupted")
 
     print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
 

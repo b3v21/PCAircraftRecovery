@@ -505,28 +505,26 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
         if not found_chained_flight:
             for t in T:
                 if x[t, f].x > 0.9 and (sigma[f].x < 0.9 or rho[f].x > 0.9):
-                    if t < 10 and f < 10:
-                        print(f"T0{t}: F0{f} \t {DK_f[f]} --> {AK_f[f]}")
-                    elif t < 10:
-                        print(f"T0{t}: F{f} \t {DK_f[f]} --> {AK_f[f]}")
-                    elif f < 10:
-                        print(f"T{t}: F0{f} \t {DK_f[f]} --> {AK_f[f]}")
-                    else:
-                        print(f"T{t}: F{f} \t {DK_f[f]} --> {AK_f[f]}")
+                    for dsl in range(len(DA)):
+                        for asl in range(len(AA)):
+                            if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
+                                if t < 10 and f < 10:
+                                    print(f"T0{t}: F0{f} \t{DK_f[f]} --> {AK_f[f]} \tFlight Slots: {DA[dsl]} --> {AA[asl]}")
+                                elif t < 10:
+                                    print(f"T0{t}: F{f} \t{DK_f[f]} --> {AK_f[f]} \tFlight Slots: {DA[dsl]} --> {AA[asl]}")
+                                elif f < 10:
+                                    print(f"T{t}: F0{f} \t{DK_f[f]} --> {AK_f[f]} \tFlight Slots: {DA[dsl]} --> {AA[asl]}")
+                                else:
+                                    print(f"T{t}: F{f} \t{DK_f[f]} --> {AK_f[f]} \tFlight Slots: {DA[dsl]} --> {AA[asl]}")
 
+    cancelled = False
     print("\nCancelled Flights:")
     for f in F:
         if z[f].x > 0.9:
             print(f"F{f} cancelled")
-
-    print("\nDeparture / arrival slots:")
-    for f in F:
-        for dsl in range(len(DA)):
-            for asl in range(len(AA)):
-                if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
-                    print(
-                        f"F{f}: \t Departure Slot: {DA[dsl]} \t Arrival Slot: {AA[asl]}"
-                    )
+            cancelled = True
+    if not cancelled:
+        print("No Flights Cancelled")
 
     print("\nDisrupted Itineraries:")
     for p in range(len(P)):

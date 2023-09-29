@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_pseudo_aus import *
+from data.test_basic_multi_flight_itineraries_scalable import *
 
 BIG_M = 999999999
 
@@ -426,8 +426,8 @@ def itinerary_delay_constraints(
     idc_1 = {
         (P.index(p), pd): m.addConstr(
             tao[P.index(p), pd]
-            == quicksum(lf[pd,fd] * (deltaA[fd] + sta[fd]) for fd in F)
-            - quicksum(lf[P.index(p),f] * sta[f] for f in F)
+            == quicksum(lf[pd, fd] * (deltaA[fd] + sta[fd]) for fd in F)
+            - quicksum(lf[P.index(p), f] * sta[f] for f in F)
         )
         for p in P
         for pd in CO_p[P.index(p)]
@@ -437,13 +437,16 @@ def itinerary_delay_constraints(
     # depending on the actual delay value in minutes.
     idc_2 = {
         (P.index(p), pd): m.addConstr(
-            tao[P.index(p), pd] <= quicksum(small_theta[g] * alpha[P.index(p), pd, g] for g in Z)
+            tao[P.index(p), pd]
+            <= quicksum(small_theta[g] * alpha[P.index(p), pd, g] for g in Z)
         )
         for p in P
         for pd in CO_p[P.index(p)]
     }
     idc_3 = {
-        (P.index(p), pd): m.addConstr(quicksum(alpha[P.index(p), pd, g] for g in Z) == 1)
+        (P.index(p), pd): m.addConstr(
+            quicksum(alpha[P.index(p), pd, g] for g in Z) == 1
+        )
         for p in P
         for pd in CO_p[P.index(p)]
     }
@@ -460,31 +463,36 @@ def beta_linearizing_constraints(
 
     blc_1 = {
         (v, P.index(p), pd, g): m.addConstr(
-            beta[v, P.index(p), pd, g] <= h[P.index(p), pd, v] + BIG_M * (1 - alpha[P.index(p), pd, g])
+            beta[v, P.index(p), pd, g]
+            <= h[P.index(p), pd, v] + BIG_M * (1 - alpha[P.index(p), pd, g])
         )
         for v in Y
         for p in P
         for pd in CO_p[P.index(p)]
         for g in Z
     }
-    
+
     blc_2 = {
         (v, P.index(p), pd, g): m.addConstr(
-            beta[v, P.index(p), pd, g] >= h[P.index(p), pd, v] - BIG_M * (1 - alpha[P.index(p), pd, g])
+            beta[v, P.index(p), pd, g]
+            >= h[P.index(p), pd, v] - BIG_M * (1 - alpha[P.index(p), pd, g])
         )
         for v in Y
         for p in P
         for pd in CO_p[P.index(p)]
         for g in Z
     }
-    
+
     blc_3 = {
-        (v, P.index(p), pd, g): m.addConstr(beta[v, P.index(p), pd, g] <= BIG_M * alpha[P.index(p), pd, g])
+        (v, P.index(p), pd, g): m.addConstr(
+            beta[v, P.index(p), pd, g] <= BIG_M * alpha[P.index(p), pd, g]
+        )
         for v in Y
         for p in P
         for pd in CO_p[P.index(p)]
         for g in Z
     }
+
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     x, z, y, sigma, rho, phi, h, lambd, _, deltaA, deltaD, vA, vD, _, _, _ = variables
@@ -511,13 +519,21 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                             if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
                                 # These flight times include arr/dep delay
                                 if t < 10 and f < 10:
-                                    print(f"F0{f}: Tail 0{t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(
+                                        f"F0{f}: Tail 0{t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                    )
                                 elif t < 10:
-                                    print(f"F{f}: Tail 0{t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(
+                                        f"F{f}: Tail 0{t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                    )
                                 elif f < 10:
-                                    print(f"F0{f}: Tail {t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(
+                                        f"F0{f}: Tail {t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                    )
                                 else:
-                                    print(f"F{f}: Tail {t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(
+                                        f"F{f}: Tail {t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                    )
 
     cancelled = False
     print("\nCancelled Flights:")
@@ -542,9 +558,9 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                                 f"    I{p} {*P[p],} --> I{pd} {*P[pd],} (FC: {v}) people reassigned: {int(h[p, pd, v].x)}"
                             )
                             disrupted_passengers += int(h[p, pd, v].x)
-                            
+
     print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
-    
+
     print("\n" + 78 * "-")
 
 

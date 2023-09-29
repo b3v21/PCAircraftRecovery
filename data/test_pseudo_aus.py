@@ -35,6 +35,7 @@ from random import randrange
 
 ################################# HELPER FUNCTIONS #################################
 
+
 def divide_number(number, divider, min_value, max_value):
     """
     Code from online, used to divide a number into a given number of parts
@@ -47,13 +48,15 @@ def divide_number(number, divider, min_value, max_value):
         number -= part
     return result
 
-def calculate_time(loc1 : tuple[float, float], loc2 : tuple[float, float]) -> float:
+
+def calculate_time(loc1: tuple[float, float], loc2: tuple[float, float]) -> float:
     """
     Calculates the time it takes to fly between two locations
     """
-    
+
     # Time is distance in km / average speed of 700km/h + 30min for takeoff/landing
-    return round(geopy.distance.geodesic(loc1,loc2).km / 700 + 0.5,1)
+    return round(geopy.distance.geodesic(loc1, loc2).km / 700 + 0.5, 1)
+
 
 TIME_HORIZON = 72
 AIRPORTS = ["SYD", "MEL", "BNE", "PER", "ADL", "OOL", "CNS", "HBA", "CBR", "TSV"]
@@ -179,11 +182,13 @@ def generate_flight_arc(
     dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
     while dest_node == node:
         dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
-        
+
     flight_time = calculate_time((node.lat, node.long), (dest_node.lat, dest_node.long))
 
     # Randomise time flight is scheduled to depart
-    departure_time = round(random.random() * TIME_HORIZON - ceil(flight_time), 1) # TODO: this needs to be changed when flight times are changed
+    departure_time = round(
+        random.random() * TIME_HORIZON - ceil(flight_time), 1
+    )  # TODO: this needs to be changed when flight times are changed
     departure_node = node.new_time_copy(departure_time, current_node_id)
 
     # if departure_node in graph.adj_list:
@@ -281,13 +286,12 @@ def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> l
 
     return P
 
+
 ################################# RUN ENGINE WITH DATA #################################
 
 random.seed(690)
 num_flights = floor(random.normalvariate(50, 5))
-flight_distribution = divide_number(
-    num_flights, len(AIRPORTS), 2, 30
-)
+flight_distribution = divide_number(num_flights, len(AIRPORTS), 2, 30)
 
 graph = create_graph(num_flights, flight_distribution)
 for node, neighs in graph.adj_list.items():
@@ -310,7 +314,7 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: 20, 2: 7, 3: 5, 4:1}
+itin_classes = {1: 20, 2: 7, 3: 5, 4: 1}
 
 try:
     P = generate_itineraries(graph, itin_classes)
@@ -321,7 +325,6 @@ print(f"There are {num_flights} flights")
 [print(p) for p in P]
 
 # Construct arrival and departure times
-# NOTE: THESE ARE LISTS IN PREV DATA FILES, NOW DICTS
 std = {}
 sta = {}
 for n in graph.adj_list.keys():
@@ -362,8 +365,8 @@ for dep_node in graph.adj_list.keys():
     arr_nodes = graph.get_neighbours(dep_node)
     for node in arr_nodes:
         if node[1] is not None:
-            FA_k[node[0].get_name()] += [node[1]]   
-        
+            FA_k[node[0].get_name()] += [node[1]]
+
 # Set of flights f which depart from airport k
 FD_k = {k: [] for k in K}
 
@@ -449,10 +452,7 @@ mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
 ct = {(f, fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
 
 # set of ordered flight pairs of consecutive flights in itinary p.
-CF_p = {
-    P.index(p): [(p[i], p[i + 1]) for i, _ in enumerate(p[:-1])]
-    for p in P
-}
+CF_p = {P.index(p): [(p[i], p[i + 1]) for i, _ in enumerate(p[:-1])] for p in P}
 
 # One if flight f is the last flight of itinerary p, and zero otherwise.
 lf = {

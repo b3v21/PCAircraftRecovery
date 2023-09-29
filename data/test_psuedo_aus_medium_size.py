@@ -7,15 +7,14 @@ from .build_psuedo_aus import *
 This is a simple testcase for the psuedo_aus model.
 """
 
-random.seed(69)
-num_flights = floor(random.normalvariate(10, 1))
-flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.20, 0.3)
+random.seed(59)
+num_flights = floor(random.normalvariate(20, 1))
+flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
 
-
 num_flights = graph.count_all_flights()
-num_tails = 3 # This is somewhat arbitrary
+num_tails = 30  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
 num_delay_levels = 2  # This is somewhat arbitrary
@@ -31,7 +30,7 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: 4, 2: 1}
+itin_classes = {1: 20, 2:5, 3:1}
 
 try:
     P = generate_itineraries(graph, itin_classes)
@@ -39,8 +38,8 @@ except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
 # DEBUG GRAPH PRINTS
-for node in graph.adj_list.items():
-    print(node)
+for node, neigh in graph.adj_list.items():
+    print(node, ": ", [n for n in neigh if n[1] is not None])
 print(P)
 
 # Construct arrival and departure times
@@ -53,22 +52,22 @@ for n in graph.adj_list.keys():
             sta[flight_id] = neigh.time
 
 # Construct arrival and departure slots
-DA = [(float(t), float(t + 0.25)) for t in np.arange(0, TIME_HORIZON, 0.25)]
-AA = [(float(t), float(t + 0.25)) for t in np.arange(0, TIME_HORIZON, 0.25)]
+DA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
+AA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
 
 # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
 AAF = {
-    f: [i for i, slot in enumerate(AA) if sta[f] <= slot[1] and sta[f] >= slot[0]]
+    f: [i for i, slot in enumerate(AA) if sta[f] >= slot[0]]
     for f in F
 }
 DAF = {
-    f: [i for i, slot in enumerate(DA) if std[f] <= slot[1] and std[f] >= slot[0]]
+    f: [i for i, slot in enumerate(DA) if std[f] >= slot[0]]
     for f in F
 }
 
 # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
-FAA = {asl: [f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA}
-FDA = {dsl: [f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA}
+FAA = {asl: [f for f in F if sta[f] >= asl[0]] for asl in AA}
+FDA = {dsl: [f for f in F if std[f] >= dsl[0]] for dsl in DA}
 
 # set of flights compatible with tail T
 # (currently every flight is compatible with every tail)
@@ -128,7 +127,7 @@ CO_p = {
 
 
 # Cost of operating flight f with tail t
-oc = {(t, f): 1500 for t in T for f in F}
+oc = {(t, f): 500 for t in T for f in F}
 
 # Delay cost per minute of arrival delay of flight f
 dc = {f: 100 for f in F}
@@ -138,11 +137,11 @@ dc = {f: 100 for f in F}
 n = {(v, P.index(p)): 20 for v in Y for p in P}
 
 # Seating capacity of tail t in T
-q = {t: 250 for t in T}
+q = {t: 1000 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
-    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 0.5)(p, pd)
+    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 50)(p, pd)
     for p in P
     for pd in P
 }
@@ -154,8 +153,8 @@ theta = {
 }
 
 # Capacity of arrival and departure slots
-scA = {asl: len(AIRPORTS) for asl in AA}
-scD = {dsl: len(AIRPORTS) for dsl in DA}
+scA = {asl: 1000 for asl in AA}
+scD = {dsl: 1000 for dsl in DA}
 
 # Scheduled buffer time for each flight (set to 0 for now)
 sb = {f: 0 for f in F}
@@ -195,15 +194,24 @@ pc = {(z, P.index(p), P.index(pd)): 0 for z in Z for p in P for pd in P}
 # planned tail.
 kappa = 100
 
-# One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-x_hat = {(f, t): 0 for t in T for f in F}
-x_hat[(6, 0)] = 1
-x_hat[(2,1)]
-x_hat[(1,2)]
-
 # Starting location of planes (binary)
 tb = {(t, k): 0 for t in T for k in K}
-tb[(0, "PER")] = 1
-tb[(1, "SYD")] = 1
-tb[(2, "SYD")] = 1
+
+# One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
+x_hat = {(f, t): 0 for f in F for t in T}
+
+P_sorted = sorted(P, key=len, reverse=True)
+
+tail_count = 0
+for airport in K:
+    deperatures = FD_k[airport]
+    for deperature in deperatures:
+        for itin in P_sorted:
+            if deperature in itin and itin.index(deperature) == 0 and 1 not in [x_hat[(deperature,tail)] for tail in T]:
+                x_hat[(deperature, tail_count)] = 1
+                tb[(tail_count, airport)] = 1
+                tail_count +=1
+         
+        
+        
 

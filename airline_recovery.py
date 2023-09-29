@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_psuedo_aus_limited_tails import *
+from data.test_psuedo_aus_medium_size import *
 
 BIG_M = 999999999
 
@@ -312,7 +312,7 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         for asl in AAF[f]
     }
 
-    # # Each non-cancelled flight is assigned exactly one arrival slot
+    # Each non-cancelled flight is assigned exactly one arrival slot
     asc_3 = {
         f: m.addConstr(quicksum(vA[asl, f] for asl in AAF[f]) == 1 - z[f]) for f in F
     }
@@ -550,19 +550,19 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     disrupted_itins = False
     disrupted_passengers = 0
     print("\nDisrupted Itineraries:")
-    for p in range(len(P)):
-        if lambd[p].x > 0.9:
+    for p in P:
+        if lambd[P.index(p)].x > 0.9:
             disrupted_itins = True
-            print(f"I{p} disrupted:")
+            print(f"I{P.index(p)} disrupted:")
 
-            for pd in range(len(P)):
+            for pd in P:
                 for v in Y:
                     if p != pd:
-                        if int(h[p, pd, v].x) > 0:
+                        if int(h[P.index(p), P.index(pd), v].x) > 0:
                             print(
-                                f"    I{p} {*P[p],} -> I{pd} {*P[pd],} (FC: {v}) people reassigned: {int(h[p, pd, v].x)}"
+                                f"    I{P.index(p)} {*P[P.index(p)],} -> I{P.index(pd)} {*P[P.index(pd)],} (FC: {v}) people reassigned: {int(h[P.index(p), P.index(pd), v].x)}"
                             )
-                            disrupted_passengers += int(h[p, pd, v].x)
+                            disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
     if not disrupted_itins:
         print("No Itineraries Disrupted")
 

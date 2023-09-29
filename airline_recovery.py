@@ -536,7 +536,7 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                     if p != pd:
                         if int(h[p, pd, v].x) > 0:
                             print(
-                                f"    I{p} {*P[p],} -> I{pd} {*P[pd],} (fare class: {v}) people reassigned: {int(h[p, pd, v].x)}"
+                                f"    I{p} {*P[p],} --> I{pd} {*P[pd],} (FC: {v}) people reassigned: {int(h[p, pd, v].x)}"
                             )
 
     print("\n" + 72 * "-")

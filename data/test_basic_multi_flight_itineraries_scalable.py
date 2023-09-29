@@ -79,14 +79,14 @@ for f in F:
     else:
         FD_k[1].append(f)
 
-departure_airport_of_f = {}
+DK_f = {}
 for f in F:
-    departure_airport_of_f[f] = -1
+    DK_f[f] = -1
 
 for f in F:
     for k in K:
         if f in FD_k[k]:
-            departure_airport_of_f[f] = k
+            DK_f[f] = k
 
 # Set of flights fd compatible with a connection from flight f
 # fd is compatible if it is scheduled to depart from the arrival airport of flight f
@@ -95,7 +95,7 @@ CF_f = {
     f: [
         fd
         for fd in F
-        if AK_f[f] == departure_airport_of_f[fd] and sta[f] <= std[fd] and fd != f
+        if AK_f[f] == DK_f[fd] and sta[f] <= std[fd] and fd != f
     ]
     for f in F
 }
@@ -109,7 +109,7 @@ CO_p = {
         P.index(pd)
         for pd in P
         if pd != []
-        and departure_airport_of_f[pd[0]] == departure_airport_of_f[p[0]]
+        and DK_f[pd[0]] == DK_f[p[0]]
         and AK_f[pd[-1]] == AK_f[p[-1]]
     ]
     for p in P

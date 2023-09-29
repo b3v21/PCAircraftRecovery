@@ -526,6 +526,7 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     if not cancelled:
         print("No Flights Cancelled")
 
+    disrupted_passengers = 0
     print("\nDisrupted Itineraries:")
     for p in range(len(P)):
         if lambd[p].x > 0.9:
@@ -538,7 +539,10 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                             print(
                                 f"    I{p} {*P[p],} --> I{pd} {*P[pd],} (FC: {v}) people reassigned: {int(h[p, pd, v].x)}"
                             )
-
+                            disrupted_passengers += int(h[p, pd, v].x)
+                            
+    print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
+    
     print("\n" + 72 * "-")
 
 

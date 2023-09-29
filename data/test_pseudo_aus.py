@@ -28,10 +28,12 @@
 import copy
 import random
 import numpy as np
-from math import floor
+from math import floor, ceil
+import geopy.distance
 
 from random import randrange
 
+################################# HELPER FUNCTIONS #################################
 
 def divide_number(number, divider, min_value, max_value):
     """
@@ -45,6 +47,13 @@ def divide_number(number, divider, min_value, max_value):
         number -= part
     return result
 
+def calculate_time(loc1 : tuple[float, float], loc2 : tuple[float, float]) -> float:
+    """
+    Calculates the time it takes to fly between two locations
+    """
+    
+    # Time is distance in km / average speed of 700km/h + 30min for takeoff/landing
+    return round(geopy.distance.geodesic(loc1,loc2).km / 700 + 0.5,1)
 
 TIME_HORIZON = 72
 AIRPORTS = ["SYD", "MEL", "BNE", "PER", "ADL", "OOL", "CNS", "HBA", "CBR", "TSV"]
@@ -170,15 +179,17 @@ def generate_flight_arc(
     dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
     while dest_node == node:
         dest_node = random.choices(default_nodes, weights=WEIGHTS)[0]
+        
+    flight_time = calculate_time((node.lat, node.long), (dest_node.lat, dest_node.long))
 
     # Randomise time flight is scheduled to depart
-    departure_time = round(random.random() * TIME_HORIZON - 2, 1) # TODO: this needs to be changed when flight times are changed
+    departure_time = round(random.random() * TIME_HORIZON - ceil(flight_time), 1) # TODO: this needs to be changed when flight times are changed
     departure_node = node.new_time_copy(departure_time, current_node_id)
 
     # if departure_node in graph.adj_list:
     graph.add_neigh_to_node(
         departure_node,
-        dest_node.new_time_copy(departure_time + 2, current_node_id + 1),
+        dest_node.new_time_copy(departure_time + flight_time, current_node_id + 1),
         current_flight_id,
     )
 
@@ -270,7 +281,7 @@ def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> l
 
     return P
 
-##################### RUN ENGINE WITH DATA ######################
+################################# RUN ENGINE WITH DATA #################################
 
 random.seed(690)
 num_flights = floor(random.normalvariate(50, 5))

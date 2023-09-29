@@ -487,9 +487,9 @@ def beta_linearizing_constraints(
     }
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
-    x, z, y, sigma, rho, phi, h, lambd, _, _, _, vA, vD, _, _, _ = variables
+    x, z, y, sigma, rho, phi, h, lambd, _, deltaA, deltaD, vA, vD, _, _, _ = variables
     print(78 * "-")
-    print("\nTail to Flight Assignments:")
+    print("\nFlight Information:")
     for f in F:
         found_chained_flight = False
         for fd in CF_f[f]:
@@ -509,14 +509,15 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                     for dsl in range(len(DA)):
                         for asl in range(len(AA)):
                             if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
+                                # These flight times include arr/dep delay
                                 if t < 10 and f < 10:
-                                    print(f"T0{t}: F0{f}\t{DK_f[f]} --> {AK_f[f]} \t Flight Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(f"F0{f}: Tail 0{t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}")
                                 elif t < 10:
-                                    print(f"T0{t}: F{f}\t{DK_f[f]} --> {AK_f[f]} \t Flight Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(f"F{f}: Tail 0{t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}")
                                 elif f < 10:
-                                    print(f"T{t}: F0{f}\t{DK_f[f]} --> {AK_f[f]} \t Flight Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(f"F0{f}: Tail {t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}")
                                 else:
-                                    print(f"T{t}: F{f}\t{DK_f[f]} --> {AK_f[f]} \t Flight Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(f"F{f}: Tail {t} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) --> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}")
 
     cancelled = False
     print("\nCancelled Flights:")

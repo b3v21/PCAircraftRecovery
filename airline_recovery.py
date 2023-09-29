@@ -529,9 +529,10 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
             for pd in range(len(P)):
                 for v in Y:
                     if p != pd:
-                        print(
-                            f"    I{p} -> I{pd} (fare class: {v}) people: {int(h[p, pd, v].x)}"
-                        )
+                        if int(h[p, pd, v].x) > 0:
+                            print(
+                                f"    I{p} -> I{pd} (fare class: {v}) people: {int(h[p, pd, v].x)}"
+                            )
 
     print("\n" + 72 * "-")
 

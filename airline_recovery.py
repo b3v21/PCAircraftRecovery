@@ -59,8 +59,8 @@ def run_aircraft_recovery() -> None:
     airport_slot_constraints(m, variables)
     flight_delay_constraints(m, variables)
     itinerary_feasibility_constraints(m, variables)
-    # itinerary_delay_constraints(m, variables)
-    # beta_linearizing_constraints(m, variables)
+    itinerary_delay_constraints(m, variables)
+    beta_linearizing_constraints(m, variables)
 
     m.optimize()
 
@@ -424,28 +424,28 @@ def itinerary_delay_constraints(
 
     # Calculate the passenger arrival delay after the itinerary reassignment.
     idc_1 = {
-        (p, pd): m.addConstr(
-            tao[p, pd]
+        (P.index(p), pd): m.addConstr(
+            tao[P.index(p), pd]
             == quicksum(lf[pd,fd] * (deltaA[fd] + sta[fd]) for fd in F)
-            - quicksum(lf[p,f] * sta[f] for f in F)
+            - quicksum(lf[P.index(p),f] * sta[f] for f in F)
         )
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
     }
 
     # Determine the passenger delay level for each pair of compatible itineraries,
     # depending on the actual delay value in minutes.
     idc_2 = {
-        (p, pd): m.addConstr(
-            tao[p, pd] <= quicksum(small_theta[g] * alpha[p, pd, g] for g in Z)
+        (P.index(p), pd): m.addConstr(
+            tao[P.index(p), pd] <= quicksum(small_theta[g] * alpha[P.index(p), pd, g] for g in Z)
         )
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
     }
     idc_3 = {
-        (p, pd): m.addConstr(quicksum(alpha[p, pd, g] for g in Z) == 1)
-        for p in range(len(P))
-        for pd in CO_p[p]
+        (P.index(p), pd): m.addConstr(quicksum(alpha[P.index(p), pd, g] for g in Z) == 1)
+        for p in P
+        for pd in CO_p[P.index(p)]
     }
 
 
@@ -459,35 +459,36 @@ def beta_linearizing_constraints(
     _, _, _, _, _, _, h, _, alpha, _, _, _, _, _, _, beta = variables
 
     blc_1 = {
-        (v, p, pd, g): m.addConstr(
-            beta[v, p, pd, g] <= h[p, pd, v] + BIG_M * (1 - alpha[p, pd, g])
+        (v, P.index(p), pd, g): m.addConstr(
+            beta[v, P.index(p), pd, g] <= h[P.index(p), pd, v] + BIG_M * (1 - alpha[P.index(p), pd, g])
         )
         for v in Y
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
         for g in Z
     }
+    
     blc_2 = {
-        (v, p, pd, g): m.addConstr(
-            beta[v, p, pd, g] >= h[p, pd, v] - BIG_M * (1 - alpha[p, pd, g])
+        (v, P.index(p), pd, g): m.addConstr(
+            beta[v, P.index(p), pd, g] >= h[P.index(p), pd, v] - BIG_M * (1 - alpha[P.index(p), pd, g])
         )
         for v in Y
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
         for g in Z
     }
+    
     blc_3 = {
-        (v, p, pd, g): m.addConstr(beta[v, p, pd, g] <= BIG_M * alpha[p, pd, g])
+        (v, P.index(p), pd, g): m.addConstr(beta[v, P.index(p), pd, g] <= BIG_M * alpha[P.index(p), pd, g])
         for v in Y
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
         for g in Z
     }
-
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     x, z, y, sigma, rho, phi, h, lambd, _, _, _, vA, vD, _, _, _ = variables
-    print(72 * "-")
+    print(78 * "-")
     print("\nTail to Flight Assignments:")
     for f in F:
         found_chained_flight = False
@@ -509,13 +510,13 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                         for asl in range(len(AA)):
                             if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
                                 if t < 10 and f < 10:
-                                    print(f"T0{t}: F0{f} \t{DK_f[f]} --> {AK_f[f]} \tFlight Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(f"T0{t}: F0{f}\t{DK_f[f]} --> {AK_f[f]} \t Flight Slots: {DA[dsl]} --> {AA[asl]}")
                                 elif t < 10:
-                                    print(f"T0{t}: F{f} \t{DK_f[f]} --> {AK_f[f]} \tFlight Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(f"T0{t}: F{f}\t{DK_f[f]} --> {AK_f[f]} \t Flight Slots: {DA[dsl]} --> {AA[asl]}")
                                 elif f < 10:
-                                    print(f"T{t}: F0{f} \t{DK_f[f]} --> {AK_f[f]} \tFlight Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(f"T{t}: F0{f}\t{DK_f[f]} --> {AK_f[f]} \t Flight Slots: {DA[dsl]} --> {AA[asl]}")
                                 else:
-                                    print(f"T{t}: F{f} \t{DK_f[f]} --> {AK_f[f]} \tFlight Slots: {DA[dsl]} --> {AA[asl]}")
+                                    print(f"T{t}: F{f}\t{DK_f[f]} --> {AK_f[f]} \t Flight Slots: {DA[dsl]} --> {AA[asl]}")
 
     cancelled = False
     print("\nCancelled Flights:")
@@ -543,7 +544,7 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                             
     print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
     
-    print("\n" + 72 * "-")
+    print("\n" + 78 * "-")
 
 
 if __name__ == "__main__":

@@ -200,7 +200,7 @@ def generate_ground_arcs(graph: AdjanecyList) -> None:
                 graph.add_neigh_to_node(n, nd, None)
 
 
-def create_graph():
+def create_graph(num_flights, flight_distribution):
     # Create default nodes
     default_nodes = [
         Node(0, airport, coords[0], coords[1], None)
@@ -210,10 +210,6 @@ def create_graph():
     current_node_id = 0
     current_flight_id = 0
     graph = AdjanecyList()
-    num_flights = floor(random.normalvariate(8, 1))
-    flight_distribution = divide_number(
-        num_flights, len(AIRPORTS), 0, 3
-    )
 
     for count, node in enumerate(default_nodes):
         flights_for_node = flight_distribution[count]
@@ -274,9 +270,15 @@ def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> l
 
     return P
 
+##################### RUN ENGINE WITH DATA ######################
 
 random.seed(690)
-graph = create_graph()
+num_flights = floor(random.normalvariate(50, 5))
+flight_distribution = divide_number(
+    num_flights, len(AIRPORTS), 2, 30
+)
+
+graph = create_graph(num_flights, flight_distribution)
 for node, neighs in graph.adj_list.items():
     print(node, neighs)
 
@@ -297,7 +299,7 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: 5, 2: 1}
+itin_classes = {1: 20, 2: 7, 3: 5, 4:1}
 
 try:
     P = generate_itineraries(graph, itin_classes)
@@ -419,8 +421,8 @@ theta = {
 }
 
 # Capacity of arrival and departure slots
-scA = {asl: 1 for asl in AA}
-scD = {dsl: 1 for dsl in DA}
+scA = {asl: len(AIRPORTS) for asl in AA}
+scD = {dsl: len(AIRPORTS) for dsl in DA}
 
 # Scheduled buffer time for each flight (set to 0 for now)
 sb = {f: 0 for f in F}

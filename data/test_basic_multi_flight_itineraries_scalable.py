@@ -92,11 +92,7 @@ for f in F:
 # fd is compatible if it is scheduled to depart from the arrival airport of flight f
 # and the scheduled arrival of f is before the scheduled departure of fd
 CF_f = {
-    f: [
-        fd
-        for fd in F
-        if AK_f[f] == departure_airport_of_f[fd] and sta[f] <= std[fd] and fd != f
-    ]
+    f: [fd for fd in F if AK_f[f] == DK_f[fd] and sta[f] <= std[fd] and fd != f]
     for f in F
 }
 
@@ -108,9 +104,7 @@ CO_p = {
     P.index(p): [
         P.index(pd)
         for pd in P
-        if pd != []
-        and departure_airport_of_f[pd[0]] == departure_airport_of_f[p[0]]
-        and AK_f[pd[-1]] == AK_f[p[-1]]
+        if pd != [] and DK_f[pd[0]] == DK_f[p[0]] and AK_f[pd[-1]] == AK_f[p[-1]]
     ]
     for p in P
     if p != []
@@ -167,7 +161,7 @@ ct = {(f, fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
 CF_p = {P.index(p): [(p[i], p[i + 1]) for i, _ in enumerate(p[:-1])] for p in P}
 
 # One if flight f is the last flight of itinerary p, and zero otherwise.
-lf = {(P.index(p), f): 1 if p[1] == f else 0 for p in P for f in F}
+lf = {(P.index(p), f): 1 if p[-1] == f else 0 for p in P for f in F}
 
 # Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
 small_theta = {z: 1000 for z in Z}

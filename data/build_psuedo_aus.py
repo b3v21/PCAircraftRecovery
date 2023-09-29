@@ -32,16 +32,27 @@ from random import randrange
 ################################# HELPER FUNCTIONS #################################
 
 
-def divide_number(number, divider, min_value, max_value):
+def divide_number(number, divider, start_min_bound, start_max_bound):
     """
     Code from online, used to divide a number into a given number of parts
     """
+    
+    step_inc = floor(1 - start_max_bound / divider)
+    
+    min_bound = start_min_bound
+    max_bound = start_max_bound
 
     result = []
-    for i in range(divider - 1, -1, -1):
-        part = randrange(min_value, min(max_value, number - i * min_value + 1))
+    for i in range(divider):          
+        try:
+            part = randrange(floor(max_bound*number), floor(max_bound*number))
+        except: 
+            part = floor(max_bound*number)
         result.append(part)
         number -= part
+        
+        min_bound += step_inc
+        max_bound += step_inc
     return result
 
 
@@ -184,13 +195,17 @@ def generate_flight_arc(
     # Randomise time flight is scheduled to depart
     departure_time = round(
         random.random() * TIME_HORIZON - ceil(flight_time), 1
-    )  # TODO: this needs to be changed when flight times are changed
+    )  
+    while departure_time < 0:
+        departure_time = round(
+        random.random() * TIME_HORIZON - ceil(flight_time), 1
+    )  
     departure_node = node.new_time_copy(departure_time, current_node_id)
 
     # if departure_node in graph.adj_list:
     graph.add_neigh_to_node(
         departure_node,
-        dest_node.new_time_copy(departure_time + flight_time, current_node_id + 1),
+        dest_node.new_time_copy(round(departure_time + flight_time,1), current_node_id + 1),
         current_flight_id,
     )
 

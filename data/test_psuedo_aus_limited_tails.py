@@ -8,13 +8,14 @@ This is a simple testcase for the psuedo_aus model.
 """
 
 random.seed(69)
-num_flights = floor(random.normalvariate(15, 1))
-flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.2, 0.3)
+num_flights = floor(random.normalvariate(10, 1))
+flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.20, 0.3)
 
 graph = create_graph(flight_distribution)
 
+
 num_flights = graph.count_all_flights()
-num_tails = graph.count_all_flights()  # This is somewhat arbitrary
+num_tails = floor(graph.count_all_flights() / 2)  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
 num_delay_levels = 2  # This is somewhat arbitrary
@@ -30,12 +31,17 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: 5}
+itin_classes = {1: 5, 2: 1}
 
 try:
     P = generate_itineraries(graph, itin_classes)
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+
+# DEBUG GRAPH PRINTS
+for node in graph.adj_list.items():
+    print(node)
+print(P)
 
 # Construct arrival and departure times
 std = {}

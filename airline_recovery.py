@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_psuedo_aus_simple import *
+from data.test_psuedo_aus_limited_tails import *
 
 BIG_M = 999999999
 

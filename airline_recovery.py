@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_passenger_itinerary_disruption import *
+from data.test_psuedo_aus_limited_tails import *
 
 BIG_M = 999999999
 
@@ -20,29 +20,32 @@ def run_aircraft_recovery() -> None:
 
     m.setObjective(
         (
-            quicksum(oc[t][f] * x[t, f] for t in T for f in F_t[t])
+            quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
             + quicksum(fc[f] * gamma[f] for f in F)
             + quicksum(dc[f] * deltaA[f] for f in F)
             + quicksum(
-                rc[p][pd]
+                rc[P.index(p), pd]
                 * (
-                    h[p, pd, v]
-                    - quicksum(theta[v][p][pd][g] * beta[v, p, pd, g] for g in Z)
+                    h[P.index(p), pd, v]
+                    - quicksum(
+                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
+                        for g in Z
+                    )
                 )
                 for v in Y
-                for p in range(len(P))
-                for pd in CO_p[p]
+                for p in P
+                for pd in CO_p[P.index(p)]
             )
             + quicksum(
-                pc[p][pd][g] * beta[v, p, pd, g]
+                pc[g, P.index(p), pd] * beta[v, P.index(p), pd, g]
                 for v in Y
-                for p in range(len(P))
-                for pd in CO_p[p]
+                for p in P
+                for pd in CO_p[P.index(p)]
                 for g in Z
             )
             + kappa
             * quicksum(
-                x[t, f] - 2 * x_hat[t][f] * x[t, f] + x_hat[t][f]
+                x[t, f] - 2 * x_hat[f, t] * x[t, f] + x_hat[f, t]
                 for t in T
                 for f in F_t[t]
             )
@@ -223,7 +226,7 @@ def sequencing_and_fleet_size_constraints(
     sfsc_6 = {
         (t, k): m.addConstr(
             quicksum(phi[t, f] for f in list(set(F_t[t]).intersection(FD_k[k])))
-            <= tb[t][k]
+            <= tb[t, k]
         )
         for t in T
         for k in K
@@ -241,17 +244,22 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
     # different from their originally scheduled itinerary (this include a null itinerary
     # if reassignment is not possible during the recovery period)
     pfc_1 = {
-        (p, v): m.addConstr(quicksum(h[p, pd, v] for pd in CO_p[p]) == n[v][p])
-        for p in range(len(P))
+        (P.index(p), v): m.addConstr(
+            quicksum(h[P.index(p), pd, v] for pd in CO_p[P.index(p)])
+            == n[v, P.index(p)]
+        )
+        for p in P
         for v in Y
     }
 
     # Passengers can be reassigned only to non-disrupted itineraries
     pfc_2 = {
-        (p, v, pd): m.addConstr(h[p, pd, v] <= (1 - lambd[pd]) * n[v][p])
-        for p in range(len(P))
+        (P.index(p), v, pd): m.addConstr(
+            h[P.index(p), pd, v] <= (1 - lambd[pd]) * n[v, P.index(p)]
+        )
+        for p in P
         for v in Y
-        for pd in CO_p[p]
+        for pd in CO_p[P.index(p)]
     }
 
     # The number of passengers that do show up for their reassigned itineraries does not
@@ -261,12 +269,15 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
             quicksum(q[t] * x[t, f] for t in T_f[f])
             >= quicksum(
                 (
-                    h[p, pd, v]
-                    - quicksum(theta[v][p][pd][g] * beta[v, p, pd, g] for g in Z)
+                    h[P.index(p), pd, v]
+                    - quicksum(
+                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
+                        for g in Z
+                    )
                 )
                 for v in Y
-                for p in range(len(P))
-                for pd in CO_p[p]
+                for p in P
+                for pd in CO_p[P.index(p)]
                 if f in P[pd]
             )
         )
@@ -301,15 +312,15 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         for asl in AAF[f]
     }
 
-    # Each non-cancelled flight is assigned exactly one arrival slot
+    # # Each non-cancelled flight is assigned exactly one arrival slot
     asc_3 = {
         f: m.addConstr(quicksum(vA[asl, f] for asl in AAF[f]) == 1 - z[f]) for f in F
     }
 
     # Arrival slot capacity limit
     asc_4 = {
-        asl: m.addConstr(quicksum(vA[asl, f] for f in FAA[asl]) <= scA[asl])
-        for asl in range(len(AA))
+        asl: m.addConstr(quicksum(vA[AA.index(asl), f] for f in FAA[asl]) <= scA[asl])
+        for asl in AA
     }
 
     # Start time of departure slot asl is no later than the combined scheduled departure
@@ -339,10 +350,10 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         f: m.addConstr(quicksum(vD[dsl, f] for dsl in DAF[f]) == 1 - z[f]) for f in F
     }
 
-    # Departure slot capacity limit
+    # # Departure slot capacity limit
     asc_8 = {
-        dsl: m.addConstr(quicksum(vD[dsl, f] for f in FDA[dsl]) <= scD[dsl])
-        for dsl in range(len(DA))
+        dsl: m.addConstr(quicksum(vD[DA.index(dsl), f] for f in FDA[dsl]) <= scD[dsl])
+        for dsl in DA
     }
 
 
@@ -364,13 +375,13 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         (f, fd, t): m.addConstr(
             deltaD[fd]
             >= deltaA[f]
-            + mtt[f][fd][t]
-            - ct[f][fd]
+            + mtt[t, f, fd]
+            - ct[f, fd]
             - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
         )
         for f in F
         for fd in CF_f[f]
-        for t in list(set(T_f[f]).intersection(T_f[fd]))
+        for t in list(set(T_f[f]).intersection(set(T_f[fd])))
     }
 
 
@@ -392,12 +403,13 @@ def itinerary_feasibility_constraints(
     }
 
     ifc_2 = {
-        p: m.addConstr(
-            std[CF_p[p][1]] + deltaD[CF_p[p][1]] - sta[CF_p[p][0]] - deltaA[CF_p[p][0]]
-            >= mct[CF_p[p][0]][CF_p[p][1]][p] - BIG_M * lambd[p]
+        (P.index(p), (f, fd)): m.addConstr(
+            std[fd] + deltaD[fd] - sta[f] - deltaA[f]
+            >= mct[P.index(p), f, fd] - BIG_M * lambd[P.index(p)]
         )
-        for p in range(len(P))
-        if CF_p[p]
+        for p in P
+        for (f, fd) in CF_p[P.index(p)]
+        if CF_p[P.index(p)] != []
     }
 
 
@@ -412,28 +424,31 @@ def itinerary_delay_constraints(
 
     # Calculate the passenger arrival delay after the itinerary reassignment.
     idc_1 = {
-        (p, pd): m.addConstr(
-            tao[p, pd]
-            == quicksum(lf[fd][pd] * (deltaA[fd] + sta[fd]) for fd in F)
-            - quicksum(lf[f][p] * sta[f] for f in F)
+        (P.index(p), pd): m.addConstr(
+            tao[P.index(p), pd]
+            == quicksum(lf[pd, fd] * (deltaA[fd] + sta[fd]) for fd in F)
+            - quicksum(lf[P.index(p), f] * sta[f] for f in F)
         )
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
     }
 
     # Determine the passenger delay level for each pair of compatible itineraries,
     # depending on the actual delay value in minutes.
     idc_2 = {
-        (p, pd): m.addConstr(
-            tao[p, pd] <= quicksum(small_theta[g] * alpha[p, pd, g] for g in Z)
+        (P.index(p), pd): m.addConstr(
+            tao[P.index(p), pd]
+            <= quicksum(small_theta[g] * alpha[P.index(p), pd, g] for g in Z)
         )
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
     }
     idc_3 = {
-        (p, pd): m.addConstr(quicksum(alpha[p, pd, g] for g in Z) == 1)
-        for p in range(len(P))
-        for pd in CO_p[p]
+        (P.index(p), pd): m.addConstr(
+            quicksum(alpha[P.index(p), pd, g] for g in Z) == 1
+        )
+        for p in P
+        for pd in CO_p[P.index(p)]
     }
 
 
@@ -447,36 +462,42 @@ def beta_linearizing_constraints(
     _, _, _, _, _, _, h, _, alpha, _, _, _, _, _, _, beta = variables
 
     blc_1 = {
-        (v, p, pd, g): m.addConstr(
-            beta[v, p, pd, g] <= h[p, pd, v] + BIG_M * (1 - alpha[p, pd, g])
+        (v, P.index(p), pd, g): m.addConstr(
+            beta[v, P.index(p), pd, g]
+            <= h[P.index(p), pd, v] + BIG_M * (1 - alpha[P.index(p), pd, g])
         )
         for v in Y
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
         for g in Z
     }
+
     blc_2 = {
-        (v, p, pd, g): m.addConstr(
-            beta[v, p, pd, g] >= h[p, pd, v] - BIG_M * (1 - alpha[p, pd, g])
+        (v, P.index(p), pd, g): m.addConstr(
+            beta[v, P.index(p), pd, g]
+            >= h[P.index(p), pd, v] - BIG_M * (1 - alpha[P.index(p), pd, g])
         )
         for v in Y
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
         for g in Z
     }
+
     blc_3 = {
-        (v, p, pd, g): m.addConstr(beta[v, p, pd, g] <= BIG_M * alpha[p, pd, g])
+        (v, P.index(p), pd, g): m.addConstr(
+            beta[v, P.index(p), pd, g] <= BIG_M * alpha[P.index(p), pd, g]
+        )
         for v in Y
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
         for g in Z
     }
 
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
-    x, z, y, sigma, rho, phi, h, lambd, _, _, _, vA, vD, _, _, _ = variables
-    print(72 * "-")
-    print("\nTail to Flight Assignments:")
+    x, z, y, sigma, rho, phi, h, lambd, _, deltaA, deltaD, vA, vD, _, _, _ = variables
+    print(78 * "-")
+    print("\nFlight Information:")
     for f in F:
         found_chained_flight = False
         for fd in CF_f[f]:
@@ -485,7 +506,10 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                     for t in T:
                         if x[t, f].x > 0.9 and x[t, fd].x > 0.9:
                             found_chained_flight = True
-                            print(f"T{t}: F{f} -> F{fd}")
+                            print(
+                                f"Tail {t}: F{f} -> F{fd} \t {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)}) \t {DK_f[fd]} ({round(std[fd] + deltaD[fd].x,1)}) -> {AK_f[fd]} ({round(sta[fd]+deltaA[fd].x,1)})"
+                            )
+                            
                             if found_chained_flight:
                                 break
                     if found_chained_flight:
@@ -493,35 +517,58 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
         if not found_chained_flight:
             for t in T:
                 if x[t, f].x > 0.9 and (sigma[f].x < 0.9 or rho[f].x > 0.9):
-                    print(f"T{t}: F{f}")
+                    for dsl in range(len(DA)):
+                        for asl in range(len(AA)):
+                            if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
+                                # These flight times include arr/dep delay
+                                if t < 10 and f < 10:
+                                    print(
+                                        f"Tail 0{t}: F0{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                    )
+                                elif t < 10:
+                                    print(
+                                        f"Tail 0{t}: F{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                    )
+                                elif f < 10:
+                                    print(
+                                        f"Tail {t}: F0{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                    )
+                                else:
+                                    print(
+                                        f"Tail {t}: F{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
+                                    )
 
+    cancelled = False
     print("\nCancelled Flights:")
     for f in F:
         if z[f].x > 0.9:
             print(f"F{f} cancelled")
+            cancelled = True
+    if not cancelled:
+        print("No Flights Cancelled")
 
-    print("\nDeparture / arrival slots:")
-    for f in F:
-        for dsl in range(len(DA)):
-            for asl in range(len(AA)):
-                if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
-                    print(
-                        f"F{f}: \t Departure Slot: {DA[dsl]} \t Arrival Slot: {AA[asl]}"
-                    )
-
+    disrupted_itins = False
+    disrupted_passengers = 0
     print("\nDisrupted Itineraries:")
     for p in range(len(P)):
         if lambd[p].x > 0.9:
+            disrupted_itins = True
             print(f"I{p} disrupted:")
 
             for pd in range(len(P)):
                 for v in Y:
                     if p != pd:
-                        print(
-                            f"    I{p} -> I{pd} (fare class: {v}) people: {int(h[p, pd, v].x)}"
-                        )
+                        if int(h[p, pd, v].x) > 0:
+                            print(
+                                f"    I{p} {*P[p],} -> I{pd} {*P[pd],} (FC: {v}) people reassigned: {int(h[p, pd, v].x)}"
+                            )
+                            disrupted_passengers += int(h[p, pd, v].x)
+    if not disrupted_itins:
+        print("No Itineraries Disrupted")
 
-    print("\n" + 72 * "-")
+    print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
+
+    print("\n" + 78 * "-")
 
 
 if __name__ == "__main__":

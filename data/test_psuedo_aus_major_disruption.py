@@ -144,7 +144,7 @@ q = {t: 250 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
-    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 500)(p, pd)
+    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 200)(p, pd)
     for p in P
     for pd in P
 }

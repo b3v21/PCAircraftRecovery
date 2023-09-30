@@ -8,7 +8,7 @@ This is a simple testcase for the psuedo_aus model.
 """
 
 random.seed(59)
-num_flights = floor(random.normalvariate(20, 1))
+num_flights = floor(random.normalvariate(500, 50))
 flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
@@ -16,7 +16,7 @@ graph = create_graph(flight_distribution)
 print("graph created")
 
 num_flights = graph.count_all_flights()
-num_tails = 30  # This is somewhat arbitrary
+num_tails = 120  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
 num_delay_levels = 2  # This is somewhat arbitrary
@@ -32,12 +32,14 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: 20, 2:5, 3:1}
+itin_classes = {1: num_flights}
 
-try:
-    P = generate_itineraries(graph, itin_classes)
-except RecursionError:
-    print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+# try:
+#     P = generate_itineraries(graph, itin_classes)
+# except RecursionError:
+#     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+
+P = [[p] for p in F]
 
 print("itineraries created")
 
@@ -144,7 +146,7 @@ q = {t: 250 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
-    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 200)(p, pd)
+    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 500)(p, pd)
     for p in P
     for pd in P
 }

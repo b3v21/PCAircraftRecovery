@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_psuedo_aus_medium_size import *
+from data.test_psuedo_aus_large_control import *
 
 BIG_M = 999999999
 

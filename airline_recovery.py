@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_psuedo_aus_limited_tails import *
+from data.test_psuedo_aus_large_control import *
 
 BIG_M = 999999999
 
@@ -18,6 +18,7 @@ def run_aircraft_recovery() -> None:
     variables = generate_variables(m)
     x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
 
+    print("setting objective...")
     m.setObjective(
         (
             quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
@@ -53,17 +54,78 @@ def run_aircraft_recovery() -> None:
         GRB.MINIMIZE,
     )
 
+    print("adding flight scheduling constraints...")
     flight_scheduling_constraints(m, variables)
+
+    print("adding sequencing and fleet size constraints... ")
     sequencing_and_fleet_size_constraints(m, variables)
+
+    print("adding passenger flow constraints...")
     passenger_flow_constraints(m, variables)
+
+    print("adding airport slot constraints...")
     airport_slot_constraints(m, variables)
+
+    print("adding flight delay constraints...")
     flight_delay_constraints(m, variables)
+
+    print("adding itinerary feasibility constraints...")
     itinerary_feasibility_constraints(m, variables)
+
+    print("adding itinerary delay constraints...")
     itinerary_delay_constraints(m, variables)
+
+    print("adding beta linearizing constraints...")
     beta_linearizing_constraints(m, variables)
 
+    print("optimizing to get xhat...")
+    m.optimize()
+    
+    x_hat_new = generate_x_hat(m, variables)
+    
+    # x_hat can be altered here
+    new_kappa = 1000
+    
+    print("setting objective with new x_hat...")
+    m.setObjective(
+        (
+            quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
+            + quicksum(fc[f] * gamma[f] for f in F)
+            + quicksum(dc[f] * deltaA[f] for f in F)
+            + quicksum(
+                rc[P.index(p), pd]
+                * (
+                    h[P.index(p), pd, v]
+                    - quicksum(
+                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
+                        for g in Z
+                    )
+                )
+                for v in Y
+                for p in P
+                for pd in CO_p[P.index(p)]
+            )
+            + quicksum(
+                pc[g, P.index(p), pd] * beta[v, P.index(p), pd, g]
+                for v in Y
+                for p in P
+                for pd in CO_p[P.index(p)]
+                for g in Z
+            )
+            + new_kappa
+            * quicksum(
+                x[t, f] - 2 * x_hat_new[f, t] * x[t, f] + x_hat_new[f, t]
+                for t in T
+                for f in F_t[t]
+            )
+        ),
+        GRB.MINIMIZE,
+    )
+
+    print("optimizing...")
     m.optimize()
 
+    print("generating output...")
     generate_output(m, variables)
 
 
@@ -312,7 +374,7 @@ def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         for asl in AAF[f]
     }
 
-    # # Each non-cancelled flight is assigned exactly one arrival slot
+    # Each non-cancelled flight is assigned exactly one arrival slot
     asc_3 = {
         f: m.addConstr(quicksum(vA[asl, f] for asl in AAF[f]) == 1 - z[f]) for f in F
     }
@@ -494,6 +556,23 @@ def beta_linearizing_constraints(
     }
 
 
+def generate_x_hat(m: Model, variables: list[dict[list[int], Var]]):
+    """ 
+    Using the x values from the first optimization, generate x_hat values for the 
+    second optimization
+    """
+    
+    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    
+    x_hat = {}
+    
+    for f in F:
+        for t in T:
+            x_hat[(f,t)] = x[t,f].x
+            
+    return x_hat
+
+
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     x, z, y, sigma, rho, phi, h, lambd, _, deltaA, deltaD, vA, vD, _, _, _ = variables
     print(78 * "-")
@@ -550,19 +629,19 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     disrupted_itins = False
     disrupted_passengers = 0
     print("\nDisrupted Itineraries:")
-    for p in range(len(P)):
-        if lambd[p].x > 0.9:
+    for p in P:
+        if lambd[P.index(p)].x > 0.9:
             disrupted_itins = True
-            print(f"I{p} disrupted:")
+            print(f"I{P.index(p)} disrupted:")
 
-            for pd in range(len(P)):
+            for pd in P:
                 for v in Y:
                     if p != pd:
-                        if int(h[p, pd, v].x) > 0:
+                        if int(h[P.index(p), P.index(pd), v].x) > 0:
                             print(
-                                f"    I{p} {*P[p],} -> I{pd} {*P[pd],} (FC: {v}) people reassigned: {int(h[p, pd, v].x)}"
+                                f"    I{P.index(p)} {*P[P.index(p)],} -> I{P.index(pd)} {*P[P.index(pd)],} (FC: {v}) people reassigned: {int(h[P.index(p), P.index(pd), v].x)}"
                             )
-                            disrupted_passengers += int(h[p, pd, v].x)
+                            disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
     if not disrupted_itins:
         print("No Itineraries Disrupted")
 

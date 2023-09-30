@@ -18,6 +18,7 @@ def run_aircraft_recovery() -> None:
     variables = generate_variables(m)
     x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
 
+    print("setting objective...")
     m.setObjective(
         (
             quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
@@ -53,17 +54,34 @@ def run_aircraft_recovery() -> None:
         GRB.MINIMIZE,
     )
 
+    print("adding flight scheduling constraints...")
     flight_scheduling_constraints(m, variables)
+
+    print("adding sequencing and fleet size constraints... ")
     sequencing_and_fleet_size_constraints(m, variables)
+
+    print("adding passenger flow constraints...")
     passenger_flow_constraints(m, variables)
+
+    print("adding airport slot constraints...")
     airport_slot_constraints(m, variables)
+
+    print("adding flight delay constraints...")
     flight_delay_constraints(m, variables)
+
+    print("adding itinerary feasibility constraints...")
     itinerary_feasibility_constraints(m, variables)
+
+    print("adding itinerary delay constraints...")
     itinerary_delay_constraints(m, variables)
+
+    print("adding beta linearizing constraints...")
     beta_linearizing_constraints(m, variables)
 
+    print("optimizing...")
     m.optimize()
 
+    print("generating output...")
     generate_output(m, variables)
 
 

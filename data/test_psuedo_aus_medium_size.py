@@ -8,13 +8,15 @@ This is a simple testcase for the psuedo_aus model.
 """
 
 random.seed(59)
-num_flights = floor(random.normalvariate(20, 1))
+num_flights = floor(random.normalvariate(250, 1))
 flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
 
+print("graph created")
+
 num_flights = graph.count_all_flights()
-num_tails = 30  # This is somewhat arbitrary
+num_tails = 300  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
 num_delay_levels = 2  # This is somewhat arbitrary
@@ -37,10 +39,11 @@ try:
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
+print("itineraries created")
+
 # DEBUG GRAPH PRINTS
-for node, neigh in graph.adj_list.items():
-    print(node, ": ", [n for n in neigh if n[1] is not None])
-print(P)
+# for node, neigh in graph.adj_list.items():
+#     print(node, ": ", [n for n in neigh if n[1] is not None])
 
 # Construct arrival and departure times
 std = {}
@@ -127,21 +130,21 @@ CO_p = {
 
 
 # Cost of operating flight f with tail t
-oc = {(t, f): 500 for t in T for f in F}
+oc = {(t, f): 10000 for t in T for f in F}
 
-# Delay cost per minute of arrival delay of flight f
-dc = {f: 100 for f in F}
+# Delay cost per hour of arrival delay of flight f
+dc = {f: 11000 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v, P.index(p)): 20 for v in Y for p in P}
+n = {(v, P.index(p)): 25 for v in Y for p in P}
 
 # Seating capacity of tail t in T
-q = {t: 1000 for t in T}
+q = {t: 250 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
-    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 50)(p, pd)
+    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 200)(p, pd)
     for p in P
     for pd in P
 }
@@ -153,8 +156,8 @@ theta = {
 }
 
 # Capacity of arrival and departure slots
-scA = {asl: 1000 for asl in AA}
-scD = {dsl: 1000 for dsl in DA}
+scA = {asl: 1000 for asl in AA}# UNBIOUNDED FOR NOW
+scD = {dsl: 1000 for dsl in DA}# UNBIOUNDED FOR NOW
 
 # Scheduled buffer time for each flight (set to 0 for now)
 sb = {f: 0 for f in F}
@@ -177,22 +180,22 @@ lf = {
     (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1]) for p in P for f in F
 }
 
-# Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
-small_theta = {z: 1000 for z in Z}
+# Upper bound on the delay, expressed in hours, corresponding to delay level ζ.
+small_theta = {z: 100 for z in Z}
 
-# Extra fuel cost for delay absorption (through cruise speed increases) per minute for
+# Extra fuel cost for delay absorption (through cruise speed increases) per hour for
 # flight f.
-fc = {f: 100 for f in F}
+fc = {f: 5000 for f in F}
 
 # Sum of the cost of the loss of goodwill and the compensation cost (if any) for a
 # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
 # the passenger’s destination arrival delay via itinerary p′ compared with the planned
 # arrival time of itinerary p corresponds to delay level ζ
-pc = {(z, P.index(p), P.index(pd)): 0 for z in Z for p in P for pd in P}
+pc = {(z, P.index(p), P.index(pd)): 200 for z in Z for p in P for pd in P}
 
 # Per-flight schedule change penalty for not operating the flight using the originally
 # planned tail.
-kappa = 100
+kappa = 0 # UNBIOUNDED FOR NOW TO REMOVE X_HAT CONTRIBUTION
 
 # Starting location of planes (binary)
 tb = {(t, k): 0 for t in T for k in K}
@@ -212,6 +215,6 @@ for airport in K:
                 tb[(tail_count, airport)] = 1
                 tail_count +=1
          
-        
+print("remaining data created")
         
 

@@ -8,7 +8,7 @@ This is a simple testcase for the psuedo_aus model.
 """
 
 random.seed(59)
-num_flights = floor(random.normalvariate(250, 1))
+num_flights = floor(random.normalvariate(20, 1))
 flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
@@ -16,7 +16,7 @@ graph = create_graph(flight_distribution)
 print("graph created")
 
 num_flights = graph.count_all_flights()
-num_tails = 300  # This is somewhat arbitrary
+num_tails = 30  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
 num_delay_levels = 2  # This is somewhat arbitrary
@@ -156,8 +156,8 @@ theta = {
 }
 
 # Capacity of arrival and departure slots
-scA = {asl: 1000 for asl in AA}# UNBIOUNDED FOR NOW
-scD = {dsl: 1000 for dsl in DA}# UNBIOUNDED FOR NOW
+scA = {asl: 1000 for asl in AA}# UNBOUNDED FOR NOW
+scD = {dsl: 1000 for dsl in DA}# UNBOUNDED FOR NOW
 
 # Scheduled buffer time for each flight (set to 0 for now)
 sb = {f: 0 for f in F}

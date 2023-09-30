@@ -78,6 +78,50 @@ def run_aircraft_recovery() -> None:
     print("adding beta linearizing constraints...")
     beta_linearizing_constraints(m, variables)
 
+    print("optimizing to get xhat...")
+    m.optimize()
+    
+    x_hat_new = generate_x_hat(m, variables)
+    
+    # x_hat can be altered here
+    new_kappa = 1000
+    
+    print("setting objective with new x_hat...")
+    m.setObjective(
+        (
+            quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
+            + quicksum(fc[f] * gamma[f] for f in F)
+            + quicksum(dc[f] * deltaA[f] for f in F)
+            + quicksum(
+                rc[P.index(p), pd]
+                * (
+                    h[P.index(p), pd, v]
+                    - quicksum(
+                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
+                        for g in Z
+                    )
+                )
+                for v in Y
+                for p in P
+                for pd in CO_p[P.index(p)]
+            )
+            + quicksum(
+                pc[g, P.index(p), pd] * beta[v, P.index(p), pd, g]
+                for v in Y
+                for p in P
+                for pd in CO_p[P.index(p)]
+                for g in Z
+            )
+            + new_kappa
+            * quicksum(
+                x[t, f] - 2 * x_hat_new[f, t] * x[t, f] + x_hat_new[f, t]
+                for t in T
+                for f in F_t[t]
+            )
+        ),
+        GRB.MINIMIZE,
+    )
+
     print("optimizing...")
     m.optimize()
 
@@ -510,6 +554,23 @@ def beta_linearizing_constraints(
         for pd in CO_p[P.index(p)]
         for g in Z
     }
+
+
+def generate_x_hat(m: Model, variables: list[dict[list[int], Var]]):
+    """ 
+    Using the x values from the first optimization, generate x_hat values for the 
+    second optimization
+    """
+    
+    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    
+    x_hat = {}
+    
+    for f in F:
+        for t in T:
+            x_hat[(f,t)] = x[t,f].x
+            
+    return x_hat
 
 
 def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:

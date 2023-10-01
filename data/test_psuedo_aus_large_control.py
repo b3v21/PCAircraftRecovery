@@ -74,6 +74,12 @@ DAF = {
 FAA = {asl: [f for f in F if sta[f] >= asl[0]] for asl in AA}
 FDA = {dsl: [f for f in F if std[f] >= dsl[0]] for dsl in DA}
 
+# Capacity of arrival and departure slots
+scA = {asl: 1000 for asl in AA}# UNBOUNDED FOR NOW
+scD = {dsl: 1000 for dsl in DA}# UNBOUNDED FOR NOW
+
+print("slot data created")
+
 # set of flights compatible with tail T
 # (currently every flight is compatible with every tail)
 F_t = {t: list(F) for t in T}
@@ -130,6 +136,20 @@ CO_p = {
     if p != []
 }
 
+# set of ordered flight pairs of consecutive flights in itinary p.
+CF_p = {P.index(p): [(p[i], p[i + 1]) for i, _ in enumerate(p[:-1])] for p in P}
+
+# Planned connection time between flights f and fd. It equals scheduled departure time of
+# flight fd minus the scheduled arrival time of flight f.
+ct = {(f, fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
+
+# One if flight f is the last flight of itinerary p, and zero otherwise.
+lf = {
+    (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1]) for p in P for f in F
+}
+
+print("itinerary and flight data created")
+
 
 # Cost of operating flight f with tail t
 oc = {(t, f): 10000 for t in T for f in F}
@@ -157,30 +177,17 @@ theta = {
     (y, P.index(p), P.index(pd), z): 0 for y in Y for p in P for pd in P for z in Z
 }
 
-# Capacity of arrival and departure slots
-scA = {asl: 1000 for asl in AA}# UNBOUNDED FOR NOW
-scD = {dsl: 1000 for dsl in DA}# UNBOUNDED FOR NOW
-
 # Scheduled buffer time for each flight (set to 0 for now)
 sb = {f: 0 for f in F}
 
 # minimum turn time between flight f and fd with tail t
 mtt = {(t, f, fd): 0 for t in T for f in F for fd in F}
 
+
 # minimum connection time between flight f and fd in itinerary p
-mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
+# mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
+mct = 0 # Hardcoded for this example to reduce data creation time
 
-# Planned connection time between flights f and fd. It equals scheduled departure time of
-# flight fd minus the scheduled arrival time of flight f.
-ct = {(f, fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
-
-# set of ordered flight pairs of consecutive flights in itinary p.
-CF_p = {P.index(p): [(p[i], p[i + 1]) for i, _ in enumerate(p[:-1])] for p in P}
-
-# One if flight f is the last flight of itinerary p, and zero otherwise.
-lf = {
-    (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1]) for p in P for f in F
-}
 
 # Upper bound on the delay, expressed in hours, corresponding to delay level ζ.
 small_theta = {z: 100 for z in Z}
@@ -194,6 +201,10 @@ fc = {f: 5000 for f in F}
 # the passenger’s destination arrival delay via itinerary p′ compared with the planned
 # arrival time of itinerary p corresponds to delay level ζ
 pc = {(z, P.index(p), P.index(pd)): 200 for z in Z for p in P for pd in P}
+
+
+print("cost data created")
+
 
 # Per-flight schedule change penalty for not operating the flight using the originally
 # planned tail.

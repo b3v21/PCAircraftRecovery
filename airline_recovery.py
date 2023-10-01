@@ -49,33 +49,35 @@ def run_aircraft_recovery() -> None:
     m.setParam("OutputFlag", 0)
     m.optimize()
 
-    x_hat_new = generate_x_hat(m, variables)
+    x_hat = generate_x_hat(m, variables)
 
-    new_kappa = 1000
+    kappa = 1000
 
     # DELAY FLIGHT 14, WHICH WAS PREVIOUSLY THE FIRST FLIGHT THAT TAIL 12 COMPLETED.
-    sta[14] = 37 + 1.6
-    std[14] = 37
+    sta[3] = 21.4 + 2.2
+    std[3] = 21.4
+
+    # AA.remove((20.0, 22.0))
 
     # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
-    AAF = {f: [i for i, slot in enumerate(AA) if sta[f] >= slot[0]] for f in F}
-    DAF = {f: [i for i, slot in enumerate(DA) if std[f] >= slot[0]] for f in F}
+    AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
+    DAF = {f: [i for i, slot in enumerate(DA) if std[f] <= slot[0]] for f in F}
 
     # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
     FAA = {asl: [f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA}
     FDA = {dsl: [f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA}
 
     print("regenerate airport slot constraints with new FAA and FDA data...")
-    airport_slot_constraints(m, variables)
+    airport_slot_constraints(m, variables, (sta, std, AAF, DAF, FAA, FDA))
 
     print("regenerate itinerary feasibility constraints with new FAA and FDA data...")
-    itinerary_feasibility_constraints(m, variables)
+    itinerary_feasibility_constraints(m, variables, (sta, std, AAF, DAF, FAA, FDA))
 
     print("regenerate itinerary delay constraints with new FAA and FDA data...")
-    itinerary_delay_constraints(m, variables)
+    itinerary_delay_constraints(m, variables, (sta, std, AAF, DAF, FAA, FDA))
 
     print("setting objective with new x_hat...")
-    set_objective(m, variables)
+    set_objective(m, variables, (x_hat, kappa))
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
@@ -172,12 +174,17 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
     ]
 
 
-def set_objective(m: Model, variables: list[dict[list[int], Var]]) -> None:
+def set_objective(
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    optional_changes: tuple = (x_hat, kappa),
+) -> None:
     """
     Set the objective function for the model
     """
 
     x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
+    x_hat, kappa = optional_changes
 
     m.setObjective(
         (
@@ -346,11 +353,16 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
     }
 
 
-def airport_slot_constraints(m: Model, variables: list[dict[list[int], Var]]) -> None:
+def airport_slot_constraints(
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    optional_changes: tuple = (sta, std, AAF, DAF, FAA, FDA),
+) -> None:
     """
     Airport slot constraints
     """
 
+    sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, z, _, _, _, _, _, _, _, deltaA, deltaD, vA, vD, _, _, _ = variables
 
     # Start time of arrival slot asl is no later than the combined scheduled arrival time
@@ -447,13 +459,16 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
 
 
 def itinerary_feasibility_constraints(
-    m: Model, variables: list[dict[list[int], Var]]
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    optional_changes: tuple = (sta, std, AAF, DAF, FAA, FDA),
 ) -> None:
     """
     Itinerary Feasibility Constraints: Determine when an itinerary gets disrupted due
     to flight cancelations and due to flight retiming decisions, respectively.
     """
 
+    sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, z, _, _, _, _, _, lambd, _, deltaA, deltaD, _, _, _, _, _ = variables
 
     ifc_1 = {
@@ -475,12 +490,15 @@ def itinerary_feasibility_constraints(
 
 
 def itinerary_delay_constraints(
-    m: Model, variables: list[dict[list[int], Var]]
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    optional_changes: tuple = (sta, std, AAF, DAF, FAA, FDA),
 ) -> None:
     """
     Itinerary Delay Constraints
     """
 
+    sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, _, _, _, _, _, _, _, alpha, deltaA, _, _, _, _, tao, _ = variables
 
     # Calculate the passenger arrival delay after the itinerary reassignment.
@@ -645,6 +663,16 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
         print("No Itineraries Disrupted")
 
     print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
+
+    print("\nFlight Delays:")
+    for f in F:
+        out = ""
+        if deltaA[f].x > 1e-5:
+            out += f"F{f} arrival delay: {round(deltaA[f].x,1)} "
+        if deltaD[f].x > 1e-5:
+            out += f"F{f} departure delay: {round(deltaD[f].x,1)}"
+        if deltaA[f].x > 1e-5 or deltaD[f].x > 1e-5:
+            print(out)
 
     print("\n" + 78 * "-")
 

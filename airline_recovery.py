@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_psuedo_aus_large_control import *
+from data.test_psuedo_aus_medium_size import *
 
 BIG_M = 999999999
 
@@ -19,40 +19,7 @@ def run_aircraft_recovery() -> None:
     x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
 
     print("setting objective...")
-    m.setObjective(
-        (
-            quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
-            + quicksum(fc[f] * gamma[f] for f in F)
-            + quicksum(dc[f] * deltaA[f] for f in F)
-            + quicksum(
-                rc[P.index(p), pd]
-                * (
-                    h[P.index(p), pd, v]
-                    - quicksum(
-                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
-                        for g in Z
-                    )
-                )
-                for v in Y
-                for p in P
-                for pd in CO_p[P.index(p)]
-            )
-            + quicksum(
-                pc[g, P.index(p), pd] * beta[v, P.index(p), pd, g]
-                for v in Y
-                for p in P
-                for pd in CO_p[P.index(p)]
-                for g in Z
-            )
-            + kappa
-            * quicksum(
-                x[t, f] - 2 * x_hat[f, t] * x[t, f] + x_hat[f, t]
-                for t in T
-                for f in F_t[t]
-            )
-        ),
-        GRB.MINIMIZE,
-    )
+    set_objective(m, variables)
 
     print("adding flight scheduling constraints...")
     flight_scheduling_constraints(m, variables)
@@ -79,50 +46,39 @@ def run_aircraft_recovery() -> None:
     beta_linearizing_constraints(m, variables)
 
     print("optimizing to get xhat...")
+    m.setParam("OutputFlag", 0)
     m.optimize()
-    
+
     x_hat_new = generate_x_hat(m, variables)
-    
-    # x_hat can be altered here
+
     new_kappa = 1000
-    
+
+    # DELAY FLIGHT 14, WHICH WAS PREVIOUSLY THE FIRST FLIGHT THAT TAIL 12 COMPLETED.
+    sta[14] = 37 + 1.6
+    std[14] = 37
+
+    # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
+    AAF = {f: [i for i, slot in enumerate(AA) if sta[f] >= slot[0]] for f in F}
+    DAF = {f: [i for i, slot in enumerate(DA) if std[f] >= slot[0]] for f in F}
+
+    # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
+    FAA = {asl: [f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA}
+    FDA = {dsl: [f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA}
+
+    print("regenerate airport slot constraints with new FAA and FDA data...")
+    airport_slot_constraints(m, variables)
+
+    print("regenerate itinerary feasibility constraints with new FAA and FDA data...")
+    itinerary_feasibility_constraints(m, variables)
+
+    print("regenerate itinerary delay constraints with new FAA and FDA data...")
+    itinerary_delay_constraints(m, variables)
+
     print("setting objective with new x_hat...")
-    m.setObjective(
-        (
-            quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
-            + quicksum(fc[f] * gamma[f] for f in F)
-            + quicksum(dc[f] * deltaA[f] for f in F)
-            + quicksum(
-                rc[P.index(p), pd]
-                * (
-                    h[P.index(p), pd, v]
-                    - quicksum(
-                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
-                        for g in Z
-                    )
-                )
-                for v in Y
-                for p in P
-                for pd in CO_p[P.index(p)]
-            )
-            + quicksum(
-                pc[g, P.index(p), pd] * beta[v, P.index(p), pd, g]
-                for v in Y
-                for p in P
-                for pd in CO_p[P.index(p)]
-                for g in Z
-            )
-            + new_kappa
-            * quicksum(
-                x[t, f] - 2 * x_hat_new[f, t] * x[t, f] + x_hat_new[f, t]
-                for t in T
-                for f in F_t[t]
-            )
-        ),
-        GRB.MINIMIZE,
-    )
+    set_objective(m, variables)
 
     print("optimizing...")
+    m.setParam("OutputFlag", 1)
     m.optimize()
 
     print("generating output...")
@@ -214,6 +170,49 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
         tao,
         beta,
     ]
+
+
+def set_objective(m: Model, variables: list[dict[list[int], Var]]) -> None:
+    """
+    Set the objective function for the model
+    """
+
+    x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
+
+    m.setObjective(
+        (
+            quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
+            + quicksum(fc[f] * gamma[f] for f in F)
+            + quicksum(dc[f] * deltaA[f] for f in F)
+            + quicksum(
+                rc[P.index(p), pd]
+                * (
+                    h[P.index(p), pd, v]
+                    - quicksum(
+                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g]
+                        for g in Z
+                    )
+                )
+                for v in Y
+                for p in P
+                for pd in CO_p[P.index(p)]
+            )
+            + quicksum(
+                pc[g, P.index(p), pd] * beta[v, P.index(p), pd, g]
+                for v in Y
+                for p in P
+                for pd in CO_p[P.index(p)]
+                for g in Z
+            )
+            + kappa
+            * quicksum(
+                x[t, f] - 2 * x_hat[f, t] * x[t, f] + x_hat[f, t]
+                for t in T
+                for f in F_t[t]
+            )
+        ),
+        GRB.MINIMIZE,
+    )
 
 
 def flight_scheduling_constraints(
@@ -557,19 +556,19 @@ def beta_linearizing_constraints(
 
 
 def generate_x_hat(m: Model, variables: list[dict[list[int], Var]]):
-    """ 
-    Using the x values from the first optimization, generate x_hat values for the 
+    """
+    Using the x values from the first optimization, generate x_hat values for the
     second optimization
     """
-    
+
     x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
-    
+
     x_hat = {}
-    
+
     for f in F:
         for t in T:
-            x_hat[(f,t)] = x[t,f].x
-            
+            x_hat[(f, t)] = int(x[t, f].x)
+
     return x_hat
 
 
@@ -588,7 +587,7 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
                             print(
                                 f"Tail {t}: F{f} -> F{fd} \t {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)}) \t {DK_f[fd]} ({round(std[fd] + deltaD[fd].x,1)}) -> {AK_f[fd]} ({round(sta[fd]+deltaA[fd].x,1)})"
                             )
-                            
+
                             if found_chained_flight:
                                 break
                     if found_chained_flight:

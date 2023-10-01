@@ -61,14 +61,8 @@ DA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
 AA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
 
 # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
-AAF = {
-    f: [i for i, slot in enumerate(AA) if sta[f] >= slot[0]]
-    for f in F
-}
-DAF = {
-    f: [i for i, slot in enumerate(DA) if std[f] >= slot[0]]
-    for f in F
-}
+AAF = {f: [i for i, slot in enumerate(AA) if sta[f] >= slot[0]] for f in F}
+DAF = {f: [i for i, slot in enumerate(DA) if std[f] >= slot[0]] for f in F}
 
 # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
 FAA = {asl: [f for f in F if sta[f] >= asl[0]] for asl in AA}
@@ -158,8 +152,8 @@ theta = {
 }
 
 # Capacity of arrival and departure slots
-scA = {asl: 1000 for asl in AA}# UNBOUNDED FOR NOW
-scD = {dsl: 1000 for dsl in DA}# UNBOUNDED FOR NOW
+scA = {asl: 1000 for asl in AA}  # UNBOUNDED FOR NOW
+scD = {dsl: 1000 for dsl in DA}  # UNBOUNDED FOR NOW
 
 # Scheduled buffer time for each flight (set to 0 for now)
 sb = {f: 0 for f in F}
@@ -197,7 +191,7 @@ pc = {(z, P.index(p), P.index(pd)): 200 for z in Z for p in P for pd in P}
 
 # Per-flight schedule change penalty for not operating the flight using the originally
 # planned tail.
-kappa = 0 # UNBIOUNDED FOR NOW TO REMOVE X_HAT CONTRIBUTION
+kappa = 0  # UNBIOUNDED FOR NOW TO REMOVE X_HAT CONTRIBUTION
 
 # Starting location of planes (binary)
 tb = {(t, k): 0 for t in T for k in K}
@@ -212,11 +206,13 @@ for airport in K:
     deperatures = FD_k[airport]
     for deperature in deperatures:
         for itin in P_sorted:
-            if deperature in itin and itin.index(deperature) == 0 and 1 not in [x_hat[(deperature,tail)] for tail in T]:
+            if (
+                deperature in itin
+                and itin.index(deperature) == 0
+                and 1 not in [x_hat[(deperature, tail)] for tail in T]
+            ):
                 x_hat[(deperature, tail_count)] = 1
                 tb[(tail_count, airport)] = 1
-                tail_count +=1
-         
-print("remaining data created")
-        
+                tail_count += 1
 
+print("remaining data created")

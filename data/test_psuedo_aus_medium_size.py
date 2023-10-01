@@ -40,6 +40,7 @@ except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
 print("itineraries created")
+[print(p) for p in P]
 
 # DEBUG GRAPH PRINTS
 # for node, neigh in graph.adj_list.items():
@@ -59,12 +60,12 @@ DA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
 AA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
 
 # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
-AAF = {f: [i for i, slot in enumerate(AA) if sta[f] >= slot[0]] for f in F}
-DAF = {f: [i for i, slot in enumerate(DA) if std[f] >= slot[0]] for f in F}
+AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
+DAF = {f: [i for i, slot in enumerate(DA) if std[f] <= slot[0]] for f in F}
 
 # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
-FAA = {asl: [f for f in F if sta[f] >= asl[0]] for asl in AA}
-FDA = {dsl: [f for f in F if std[f] >= dsl[0]] for dsl in DA}
+FAA = {asl: [f for f in F if sta[f] <= asl[0]] for asl in AA}
+FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
 # set of flights compatible with tail T
 # (currently every flight is compatible with every tail)
@@ -127,7 +128,7 @@ CO_p = {
 oc = {(t, f): 10000 for t in T for f in F}
 
 # Delay cost per hour of arrival delay of flight f
-dc = {f: 11000 for f in F}
+dc = {f: 12500 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
@@ -138,7 +139,7 @@ q = {t: 250 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
-    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 500)(p, pd)
+    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 800)(p, pd)
     for p in P
     for pd in P
 }
@@ -146,7 +147,7 @@ rc = {
 # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
 # zeta
 theta = {
-    (y, P.index(p), P.index(pd), z): 0 for y in Y for p in P for pd in P for z in Z
+    (y, P.index(p), P.index(pd), z): 0.2 for y in Y for p in P for pd in P for z in Z
 }
 
 # Capacity of arrival and departure slots
@@ -175,7 +176,7 @@ lf = {
 }
 
 # Upper bound on the delay, expressed in hours, corresponding to delay level ζ.
-small_theta = {z: 100 for z in Z}
+small_theta = {z: 60 for z in Z}
 
 # Extra fuel cost for delay absorption (through cruise speed increases) per hour for
 # flight f.
@@ -209,7 +210,6 @@ for airport in K:
                 and itin.index(deperature) == 0
                 and 1 not in [x_hat[(deperature, tail)] for tail in T]
             ):
-                x_hat[(deperature, tail_count)] = 1
                 tb[(tail_count, airport)] = 1
                 tail_count += 1
 

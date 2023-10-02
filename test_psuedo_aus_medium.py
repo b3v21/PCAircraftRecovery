@@ -8,9 +8,6 @@ from math import floor
 random.seed(59)
 
 
-############################### Build base data for medium scale test ##############################
-
-
 def build_base_data() -> tuple:
     num_flights = floor(random.normalvariate(20, 1))
     flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
@@ -263,7 +260,7 @@ def build_base_data() -> tuple:
 
 
 def test_psuedo_aus_medium_size():
-    m = Model("airline recovery basic")
+    m = Model("airline recovery aus medium")
 
     (
         T,

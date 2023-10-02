@@ -53,11 +53,8 @@ def run_aircraft_recovery() -> None:
 
     kappa = 1000
 
-    # DELAY FLIGHT 14, WHICH WAS PREVIOUSLY THE FIRST FLIGHT THAT TAIL 12 COMPLETED.
-    sta[3] = 21.4 + 2.2
-    std[3] = 21.4
-
-    # AA.remove((20.0, 22.0))
+    # Delay flight 0 by makings its arrival slot unavailable.
+    AA.remove((54.0, 56.0))
 
     # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
     AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}

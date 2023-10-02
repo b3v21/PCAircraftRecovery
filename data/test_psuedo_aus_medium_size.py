@@ -160,14 +160,14 @@ theta = {
 scA = {asl: 5 for asl in AA}
 scD = {dsl: 5 for dsl in DA}
 
-# Scheduled buffer time for each flight (set to 0 for now)
-sb = {f: 0.75 for f in F}
+# Scheduled buffer time for each flight
+sb = {f: 1 for f in F}
 
 # minimum turn time between flight f and fd with tail t
-mtt = {(t, f, fd): 0.75 for t in T for f in F for fd in F}
+mtt = {(t, f, fd): 1 for t in T for f in F for fd in F}
 
 # minimum connection time between flight f and fd in itinerary p
-mct = {(P.index(p), f, fd): 0.75 for p in P for f in F for fd in F}
+mct = {(P.index(p), f, fd): 1 for p in P for f in F for fd in F}
 
 # Planned connection time between flights f and fd. It equals scheduled departure time of
 # flight fd minus the scheduled arrival time of flight f.
@@ -182,7 +182,7 @@ lf = {
 }
 
 # Upper bound on the delay, expressed in hours, corresponding to delay level ζ.
-small_theta = {0: 10, 1: 20, 2: 30, 3: 45, 4: 60}
+small_theta = {0: 1, 1: 2, 2: 5, 3: 10, 4: 72}
 
 # Extra fuel cost for delay absorption (through cruise speed increases) per hour for
 # flight f.

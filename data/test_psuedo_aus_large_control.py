@@ -8,7 +8,7 @@ This is a simple testcase for the psuedo_aus model.
 """
 
 random.seed(69)
-num_flights = floor(random.normalvariate(100, 20))
+num_flights = floor(random.normalvariate(250, 10))
 flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
@@ -16,10 +16,10 @@ graph = create_graph(flight_distribution)
 print("graph created")
 
 num_flights = graph.count_all_flights()
-num_tails = num_flights  # This is somewhat arbitrary
+num_tails = 120  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
-num_delay_levels = 2  # This is somewhat arbitrary
+num_delay_levels = 5  # This is somewhat arbitrary
 
 # Sets
 T = range(num_tails)
@@ -32,14 +32,14 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: num_flights}
+itin_classes = {1: floor(num_flights/2), 2: 15, 3: 3}
 
-# try:
-#     P = generate_itineraries(graph, itin_classes)
-# except RecursionError:
-#     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+try:
+    P = generate_itineraries(graph, itin_classes)
+except RecursionError:
+    print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
-P = [[p] for p in range(5)]
+# P = [[p] for p in range(num_flights)]
 
 print("itineraries created")
 
@@ -69,8 +69,8 @@ FAA = {asl: [f for f in F if sta[f] <= asl[0]] for asl in AA}
 FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
 # Capacity of arrival and departure slots
-scA = {asl: 100 for asl in AA}
-scD = {dsl: 100 for dsl in DA}
+scA = {asl: 10 for asl in AA}
+scD = {dsl: 10 for dsl in DA}
 
 print("slot data created")
 
@@ -108,7 +108,7 @@ AK_f = {}
 for airport, flights in FA_k.items():
     for flight in flights:
         AK_f[flight] = airport
-        
+
 
 # Set of flights fd compatible with a connection from flight f
 # fd is compatible if it is scheduled to depart from the arrival airport of flight f
@@ -154,10 +154,10 @@ dc = {f: 12500 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v, P.index(p)): 25 for v in Y for p in P}
+n = {(v, P.index(p)): 50 for v in Y for p in P}
 
 # Seating capacity of tail t in T
-q = {t: 10000000 for t in T}
+q = {t: 250 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
@@ -182,11 +182,11 @@ theta = {
 sb = {f: 0 for f in F}
 
 # minimum turn time between flight f and fd with tail t
-mtt = 1 # FIX THIS SHIT ASAP
+mtt = 1  # FIX THIS SHIT ASAP
 
 # minimum connection time between flight f and fd in itinerary p
 # mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
-mct = 1 # Hardcoded for this example to reduce data creation time
+mct = 1  # Hardcoded for this example to reduce data creation time
 # FIX THIS ALSO
 
 
@@ -218,7 +218,7 @@ tb = {(t, k): 0 for t in T for k in K}
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
 x_hat = {(f, t): 0 for f in F for t in T}
 
-P_sorted = sorted(P, key=(lambda x : std[x[0]]))
+P_sorted = sorted(P, key=(lambda x: std[x[0]]))
 
 tail_count = 0
 
@@ -228,8 +228,8 @@ for itin in P_sorted:
     tail_count += 1
     if tail_count == num_tails:
         break
-    
-print([(DK_f[p[0]], AK_f[p[0]], std[p[0]], sta[p[0]]) for p in P])
-print([x for x in tb if tb[x] == 1])
+
+# print([(DK_f[p[0]], AK_f[p[0]], std[p[0]], sta[p[0]]) for p in P])
+# print([x for x in tb if tb[x] == 1])
 
 print("remaining data created")

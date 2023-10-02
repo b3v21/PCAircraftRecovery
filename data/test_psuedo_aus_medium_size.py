@@ -19,7 +19,7 @@ num_flights = graph.count_all_flights()
 num_tails = 30  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
-num_delay_levels = 2  # This is somewhat arbitrary
+num_delay_levels = 5  # This is somewhat arbitrary
 
 # Sets
 T = range(num_tails)
@@ -132,7 +132,7 @@ dc = {f: 12500 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v, P.index(p)): 25 for v in Y for p in P}
+n = {(v, P.index(p)): 50 for v in Y for p in P}
 
 # Seating capacity of tail t in T
 q = {t: 250 for t in T}
@@ -146,22 +146,28 @@ rc = {
 
 # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
 # zeta
+phantom_rates = [0.1, 0.2, 0.3, 0.4, 0.5]
+
 theta = {
-    (y, P.index(p), P.index(pd), z): 0.2 for y in Y for p in P for pd in P for z in Z
+    (y, P.index(p), P.index(pd), z): phantom_rates[z]
+    for y in Y
+    for p in P
+    for pd in P
+    for z in Z
 }
 
 # Capacity of arrival and departure slots
-scA = {asl: 1000 for asl in AA}  # UNBOUNDED FOR NOW
-scD = {dsl: 1000 for dsl in DA}  # UNBOUNDED FOR NOW
+scA = {asl: 5 for asl in AA}
+scD = {dsl: 5 for dsl in DA}
 
 # Scheduled buffer time for each flight (set to 0 for now)
-sb = {f: 0 for f in F}
+sb = {f: 0.75 for f in F}
 
 # minimum turn time between flight f and fd with tail t
-mtt = {(t, f, fd): 0 for t in T for f in F for fd in F}
+mtt = {(t, f, fd): 0.75 for t in T for f in F for fd in F}
 
 # minimum connection time between flight f and fd in itinerary p
-mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
+mct = {(P.index(p), f, fd): 0.75 for p in P for f in F for fd in F}
 
 # Planned connection time between flights f and fd. It equals scheduled departure time of
 # flight fd minus the scheduled arrival time of flight f.
@@ -176,17 +182,17 @@ lf = {
 }
 
 # Upper bound on the delay, expressed in hours, corresponding to delay level ζ.
-small_theta = {z: 60 for z in Z}
+small_theta = {0: 10, 1: 20, 2: 30, 3: 45, 4: 60}
 
 # Extra fuel cost for delay absorption (through cruise speed increases) per hour for
 # flight f.
-fc = {f: 5000 for f in F}
+fc = {f: 30000 for f in F}
 
 # Sum of the cost of the loss of goodwill and the compensation cost (if any) for a
 # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
 # the passenger’s destination arrival delay via itinerary p′ compared with the planned
 # arrival time of itinerary p corresponds to delay level ζ
-pc = {(z, P.index(p), P.index(pd)): 200 for z in Z for p in P for pd in P}
+pc = {(z, P.index(p), P.index(pd)): 250 for z in Z for p in P for pd in P}
 
 # Per-flight schedule change penalty for not operating the flight using the originally
 # planned tail.
@@ -195,8 +201,9 @@ kappa = 0  # UNBIOUNDED FOR NOW TO REMOVE X_HAT CONTRIBUTION
 # Starting location of planes (binary)
 tb = {(t, k): 0 for t in T for k in K}
 
-# One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-x_hat = {(f, t): 0 for f in F for t in T}
+x_hat = {
+    (f, t): 0 for f in F for t in T
+}  # UNBOUNDED (first solve calculates this value)
 
 P_sorted = sorted(P, key=len, reverse=True)
 

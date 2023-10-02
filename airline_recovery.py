@@ -667,10 +667,12 @@ def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
     print("\nFlight Delays:")
     for f in F:
         out = ""
-        if deltaA[f].x > 1e-5:
-            out += f"F{f} arrival delay: {round(deltaA[f].x,1)} "
         if deltaD[f].x > 1e-5:
-            out += f"F{f} departure delay: {round(deltaD[f].x,1)}"
+            out += f"F{f} Departure Delay: {round(deltaD[f].x,1)} "
+        if deltaA[f].x > 1e-5:
+            out += f"F{f} Arrival Delay: {round(deltaA[f].x,1)} "
+        if deltaD[f].x - deltaA[f].x > 1e-3:
+            out += f"-> Delay Absorbed: {round(deltaD[f].x - deltaA[f].x,2)}"
         if deltaA[f].x > 1e-5 or deltaD[f].x > 1e-5:
             print(out)
 

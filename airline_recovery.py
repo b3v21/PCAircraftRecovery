@@ -478,7 +478,7 @@ def itinerary_feasibility_constraints(
     ifc_2 = {
         (P.index(p), (f, fd)): m.addConstr(
             std[fd] + deltaD[fd] - sta[f] - deltaA[f]
-            >= mct[P.index(p), f, fd] - BIG_M * lambd[P.index(p)]
+            >= mct - BIG_M * lambd[P.index(p)]
         )
         for p in P
         for (f, fd) in CF_p[P.index(p)]

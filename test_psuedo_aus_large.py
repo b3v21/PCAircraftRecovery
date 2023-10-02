@@ -9,7 +9,7 @@ random.seed(59)
 
 
 def build_base_data() -> tuple:
-    num_flights = floor(random.normalvariate(100, 1))
+    num_flights = floor(random.normalvariate(250, 10))
     flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
 
     graph = create_graph(flight_distribution)
@@ -29,18 +29,16 @@ def build_base_data() -> tuple:
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
 
-    # This represents the different types of itineraries which will be generated, in this case
-    # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
-    # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
+    # This represents the different types of itineraries which will be generated
+    singles = []
+    for p in range(num_flights):
+        singles.append([p]) 
+    itin_classes = {2: 15, 3:5}
 
-    itin_classes = {1: num_flights}
-
-    # try:
-    #     P = generate_itineraries(graph, itin_classes)
-    # except RecursionError:
-    #     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-
-    P = [[p] for p in F]
+    try:
+        P = generate_itineraries(graph, itin_classes, singles)
+    except RecursionError:
+        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
     print("itineraries created")
 
@@ -110,6 +108,7 @@ def build_base_data() -> tuple:
         for flight in flights:
             AK_f[flight] = airport
 
+
     # Set of flights fd compatible with a connection from flight f
     # fd is compatible if it is scheduled to depart from the arrival airport of flight f
     # and the scheduled arrival of f is before the scheduled departure of fd
@@ -140,12 +139,11 @@ def build_base_data() -> tuple:
 
     # One if flight f is the last flight of itinerary p, and zero otherwise.
     lf = {
-        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1])
-        for p in P
-        for f in F
+        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1]) for p in P for f in F
     }
 
     print("itinerary and flight data created")
+
 
     # Cost of operating flight f with tail t
     oc = {(t, f): 10000 for t in T for f in F}
@@ -155,7 +153,7 @@ def build_base_data() -> tuple:
 
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
-    n = {(v, P.index(p)): 25 for v in Y for p in P}
+    n = {(v, P.index(p)): 50 if len(p) == 1 else 20 for v in Y for p in P}
 
     # Seating capacity of tail t in T
     q = {t: 250 for t in T}
@@ -180,7 +178,7 @@ def build_base_data() -> tuple:
     }
 
     # Scheduled buffer time for each flight (set to 0 for now)
-    sb = {f: 1 for f in F}
+    sb = {f: 0 for f in F}
 
     # minimum turn time between flight f and fd with tail t
     mtt = {(t, f, fd): 1 for t in T for f in F for fd in F}
@@ -188,8 +186,10 @@ def build_base_data() -> tuple:
     # minimum connection time between flight f and fd in itinerary p
     mct = {(P.index(p), f, fd): 1 for p in P for f in F for fd in F}
 
+
     # Upper bound on the delay, expressed in hours, corresponding to delay level ζ.
     small_theta = {0: 1, 1: 2, 2: 5, 3: 10, 4: 72}
+
 
     # Extra fuel cost for delay absorption (through cruise speed increases) per hour for
     # flight f.
@@ -201,7 +201,9 @@ def build_base_data() -> tuple:
     # arrival time of itinerary p corresponds to delay level ζ
     pc = {(z, P.index(p), P.index(pd)): 250 for z in Z for p in P for pd in P}
 
+
     print("cost data created")
+
 
     # Per-flight schedule change penalty for not operating the flight using the originally
     # planned tail.
@@ -213,20 +215,16 @@ def build_base_data() -> tuple:
     # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
     x_hat = {(f, t): 0 for f in F for t in T}
 
-    P_sorted = sorted(P, key=len, reverse=True)
+    P_sorted = sorted(P, key=(lambda x: std[x[0]]))
 
     tail_count = 0
-    for airport in K:
-        deperatures = FD_k[airport]
-        for deperature in deperatures:
-            for itin in P_sorted:
-                if (
-                    deperature in itin
-                    and itin.index(deperature) == 0
-                    and 1 not in [x_hat[(deperature, tail)] for tail in T]
-                ):
-                    tb[(tail_count, airport)] = 1
-                    tail_count += 1
+
+    for itin in P_sorted:
+        airport = DK_f[itin[0]]
+        tb[(tail_count, airport)] = 1
+        tail_count += 1
+        if tail_count == num_tails:
+            break
 
     print("remaining data created")
 

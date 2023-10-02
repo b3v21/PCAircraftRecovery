@@ -38,18 +38,16 @@ def generate_variables(
     phi = {(t, f): m.addVar(vtype=GRB.BINARY) for f in F for t in T}
 
     # number of passengers in fare class v, reassigned from itinerary p to itinerary p
-    h = {
-        (p, pd, v): m.addVar() for v in Y for p in range(len(P)) for pd in range(len(P))
-    }
+    h = {(P.index(p), P.index(pd), v): m.addVar() for v in Y for p in P for pd in P}
 
     # lambd[p] = 1 if itinerary p is disrupted
-    lambd = {p: m.addVar(vtype=GRB.BINARY) for p in range(len(P))}
+    lambd = {P.index(p): m.addVar(vtype=GRB.BINARY) for p in P}
 
     # 1 if itinerary p is reassigned to itinerary pd with delay level g
     alpha = {
-        (p, pd, g): m.addVar(vtype=GRB.BINARY)
-        for p in range(len(P))
-        for pd in range(len(P))
+        (P.index(p), P.index(pd), g): m.addVar(vtype=GRB.BINARY)
+        for p in P
+        for pd in P
         for g in Z
     }
 
@@ -69,15 +67,19 @@ def generate_variables(
     gamma = {f: m.addVar() for f in F}
 
     # Arrival delay of itinerary pd with respect to planned arrival time of itinerary p
-    tao = {(p, pd): m.addVar(lb=-GRB.INFINITY) for p in range(len(P)) for pd in CO_p[p]}
+    tao = {
+        (P.index(p), pd): m.addVar(lb=-GRB.INFINITY)
+        for p in P
+        for pd in CO_p[P.index(p)]
+    }
 
     # number of passengers in fare class v with originally scheduled itinerary p,
     # reassigned to itinerary pd, corresponding to an arrival delay level ζ
     beta = {
-        (v, p, pd, g): m.addVar(vtype=GRB.INTEGER)
+        (v, P.index(p), pd, g): m.addVar(vtype=GRB.INTEGER)
         for v in Y
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
         for g in Z
     }
 
@@ -508,6 +510,7 @@ def itinerary_delay_constraints(
         for p in P
         for pd in CO_p[P.index(p)]
     }
+
     idc_3 = {
         (P.index(p), pd): m.addConstr(
             quicksum(alpha[P.index(p), pd, g] for g in Z) == 1
@@ -603,7 +606,9 @@ def generate_output(
 ) -> None:
     x, z, y, sigma, rho, phi, h, lambd, _, deltaA, deltaD, vA, vD, _, _, _ = variables
 
-    print(78 * "-")
+    chained_flights = {}
+
+    print(60 * "-")
     print("\nFlight Information:")
     for f in F:
         found_chained_flight = False
@@ -613,10 +618,9 @@ def generate_output(
                     for t in T:
                         if x[t, f].x > 0.9 and x[t, fd].x > 0.9:
                             found_chained_flight = True
-                            print(
-                                f"Tail {t}: F{f} -> F{fd} \t {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)}) \t {DK_f[fd]} ({round(std[fd] + deltaD[fd].x,1)}) -> {AK_f[fd]} ({round(sta[fd]+deltaA[fd].x,1)})"
-                            )
-
+                            if t in chained_flights:
+                                chained_flights[t].append(f)
+                            chained_flights[t] = [f, fd]
                             if found_chained_flight:
                                 break
                     if found_chained_flight:
@@ -628,22 +632,23 @@ def generate_output(
                         for asl in range(len(AA)):
                             if vD[dsl, f].x > 0.9 and vA[asl, f].x > 0.9:
                                 # These flight times include arr/dep delay
-                                if t < 10 and f < 10:
-                                    print(
-                                        f"Tail 0{t}: F0{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
-                                    )
-                                elif t < 10:
-                                    print(
-                                        f"Tail 0{t}: F{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
-                                    )
-                                elif f < 10:
-                                    print(
-                                        f"Tail {t}: F0{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
-                                    )
-                                else:
-                                    print(
-                                        f"Tail {t}: F{f} \t  {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t Slots: {DA[dsl]} --> {AA[asl]}"
-                                    )
+                                print(
+                                    f"Tail {t}: F{f} \t  \t {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t"
+                                )
+                                
+    for t, cf in chained_flights.items():
+        output = ''
+        output = f"Tail {t}: "
+        for i, f in enumerate(cf):
+            output += f"F{f}"
+            if i != len(cf) - 1:
+                output += " -> "
+            else:
+                output += '\t '
+
+        for f in cf:
+            output += f"{DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)}) \t"
+        print(output)
 
     cancelled = False
     print("\nCancelled Flights:")
@@ -687,7 +692,7 @@ def generate_output(
         if deltaA[f].x > 1e-5 or deltaD[f].x > 1e-5:
             print(out)
 
-    print("\n" + 78 * "-")
+    print("\n" + 60 * "-")
 
 
 if __name__ == "__main__":

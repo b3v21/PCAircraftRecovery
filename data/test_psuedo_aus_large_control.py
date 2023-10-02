@@ -7,7 +7,7 @@ from .build_psuedo_aus import *
 This is a simple testcase for the psuedo_aus model.
 """
 
-random.seed(69)
+random.seed(59)
 num_flights = floor(random.normalvariate(250, 10))
 flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
 
@@ -28,18 +28,16 @@ K = AIRPORTS
 Y = range(num_fare_classes)
 Z = range(num_delay_levels)
 
-# This represents the different types of itineraries which will be generated, in this case
-# there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
-# tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
-
-itin_classes = {1: floor(num_flights/2), 2: 15, 3: 3}
+# This represents the different types of itineraries which will be generated
+singles = []
+for p in range(num_flights):
+    singles.append([p]) 
+itin_classes = {2: 15, 3:5}
 
 try:
-    P = generate_itineraries(graph, itin_classes)
+    P = generate_itineraries(graph, itin_classes, singles)
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-
-# P = [[p] for p in range(num_flights)]
 
 print("itineraries created")
 
@@ -154,7 +152,7 @@ dc = {f: 12500 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v, P.index(p)): 50 for v in Y for p in P}
+n = {(v, P.index(p)): 50 if len(p) == 1 else 20 for v in Y for p in P}
 
 # Seating capacity of tail t in T
 q = {t: 250 for t in T}
@@ -182,12 +180,10 @@ theta = {
 sb = {f: 0 for f in F}
 
 # minimum turn time between flight f and fd with tail t
-mtt = 1  # FIX THIS SHIT ASAP
+mtt = {(f,fd,t): 0 for f in F for fd in F for t in T}
 
 # minimum connection time between flight f and fd in itinerary p
-# mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
-mct = 1  # Hardcoded for this example to reduce data creation time
-# FIX THIS ALSO
+mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
 
 
 # Upper bound on the delay, expressed in hours, corresponding to delay level ζ.

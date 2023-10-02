@@ -446,7 +446,7 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
     fdc_2 = {
         (f, fd, t): m.addConstr(
             deltaD[fd]
-            >= deltaA[f] + mtt - ct[f, fd] - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
+            >= deltaA[f] + mtt[f,fd,t] - ct[f, fd] - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
         )
         for f in F
         for fd in CF_f[f]

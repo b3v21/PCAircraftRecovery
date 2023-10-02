@@ -286,8 +286,8 @@ def itinerary_builder(
     return itinerary_builder(graph, length, itin, P)
 
 
-def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> list:
-    P = []
+def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int], singles: list[list[int]]) -> list:
+    P = singles
 
     for length, num_itins in itin_classes.items():
         for _ in range(num_itins):

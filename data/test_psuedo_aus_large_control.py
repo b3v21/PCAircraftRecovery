@@ -19,7 +19,7 @@ num_flights = graph.count_all_flights()
 num_tails = num_flights  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
-num_delay_levels = 2  # This is somewhat arbitrary
+num_delay_levels = 5  # This is somewhat arbitrary
 
 # Sets
 T = range(num_tails)

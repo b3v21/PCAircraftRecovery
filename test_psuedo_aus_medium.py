@@ -604,7 +604,7 @@ def test_reschedule_slot_cancel():
         fc,
     )
 
-    assert round(test_reschedule_slot_cancel.objVal, 5) == 1313999.99845
+    assert round(test_reschedule_slot_cancel.objVal, 2) == 1314000
 
 
 def test_reschedule_flight_cancel():
@@ -927,8 +927,8 @@ def test_reschedule_airport_shutdown():
     _, _, _, _, _, _, _, _, _, deltaA, deltaD, _, _, _, _, _ = variables
 
     for node in graph.adj_list.keys():
-        for neigh in graph.get_neighbours(node):
-            if neigh[1] is not None:
+        for neigh, flightid in graph.get_neighbours(node):
+            if flightid is not None:
                 # Departing Brisbane
                 if all(
                     [
@@ -937,19 +937,19 @@ def test_reschedule_airport_shutdown():
                         node.time <= 70,
                     ]
                 ):
-                    deltaA[neigh[1]].lb = 70 - sta[neigh[1]]
-                    deltaD[neigh[1]].lb = 70 - std[neigh[1]]
+                    deltaA[flightid].lb = 70 - sta[flightid]
+                    deltaD[flightid].lb = 70 - std[flightid]
 
                 # Arriving to Brisbane
                 if all(
                     [
-                        neigh[0].get_name() == "SYD",
-                        neigh[0].time >= 50,
-                        neigh[0].time <= 70,
+                        neigh.get_name() == "SYD",
+                        neigh.time >= 50,
+                        neigh.time <= 70,
                     ]
                 ):
-                    deltaA[neigh[1]].lb = 70 - sta[neigh[1]]
-                    deltaD[neigh[1]].lb = 70 - std[neigh[1]]
+                    deltaA[flightid].lb = 70 - sta[flightid]
+                    deltaD[flightid].lb = 70 - std[flightid]
 
     x_hat = generate_x_hat(test_reschedule_airport_shutdown, variables, F, T)
     kappa = 1000

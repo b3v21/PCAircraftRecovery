@@ -15,7 +15,7 @@ graph = create_graph(flight_distribution)
 
 
 num_flights = graph.count_all_flights()
-num_tails = 3 # This is somewhat arbitrary
+num_tails = 3  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
 num_delay_levels = 2  # This is somewhat arbitrary
@@ -198,12 +198,11 @@ kappa = 100
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
 x_hat = {(f, t): 0 for t in T for f in F}
 x_hat[(6, 0)] = 1
-x_hat[(2,1)]
-x_hat[(1,2)]
+x_hat[(2, 1)]
+x_hat[(1, 2)]
 
 # Starting location of planes (binary)
 tb = {(t, k): 0 for t in T for k in K}
 tb[(0, "PER")] = 1
 tb[(1, "SYD")] = 1
 tb[(2, "SYD")] = 1
-

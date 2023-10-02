@@ -19,7 +19,7 @@ num_flights = graph.count_all_flights()
 num_tails = 30  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
-num_delay_levels = 2  # This is somewhat arbitrary
+num_delay_levels = 5  # This is somewhat arbitrary
 
 # Sets
 T = range(num_tails)
@@ -32,7 +32,7 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: 20, 2:5, 3:1}
+itin_classes = {1: 20, 2: 5, 3: 1}
 
 try:
     P = generate_itineraries(graph, itin_classes)
@@ -40,6 +40,7 @@ except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
 print("itineraries created")
+[print(p) for p in P]
 
 # DEBUG GRAPH PRINTS
 # for node, neigh in graph.adj_list.items():
@@ -59,18 +60,12 @@ DA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
 AA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
 
 # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
-AAF = {
-    f: [i for i, slot in enumerate(AA) if sta[f] >= slot[0]]
-    for f in F
-}
-DAF = {
-    f: [i for i, slot in enumerate(DA) if std[f] >= slot[0]]
-    for f in F
-}
+AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
+DAF = {f: [i for i, slot in enumerate(DA) if std[f] <= slot[0]] for f in F}
 
 # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
-FAA = {asl: [f for f in F if sta[f] >= asl[0]] for asl in AA}
-FDA = {dsl: [f for f in F if std[f] >= dsl[0]] for dsl in DA}
+FAA = {asl: [f for f in F if sta[f] <= asl[0]] for asl in AA}
+FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
 # set of flights compatible with tail T
 # (currently every flight is compatible with every tail)
@@ -133,40 +128,46 @@ CO_p = {
 oc = {(t, f): 10000 for t in T for f in F}
 
 # Delay cost per hour of arrival delay of flight f
-dc = {f: 11000 for f in F}
+dc = {f: 12500 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v, P.index(p)): 25 for v in Y for p in P}
+n = {(v, P.index(p)): 50 for v in Y for p in P}
 
 # Seating capacity of tail t in T
 q = {t: 250 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
-    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 500)(p, pd)
+    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 800)(p, pd)
     for p in P
     for pd in P
 }
 
 # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
 # zeta
+phantom_rates = [0.1, 0.2, 0.3, 0.4, 0.5]
+
 theta = {
-    (y, P.index(p), P.index(pd), z): 0 for y in Y for p in P for pd in P for z in Z
+    (y, P.index(p), P.index(pd), z): phantom_rates[z]
+    for y in Y
+    for p in P
+    for pd in P
+    for z in Z
 }
 
 # Capacity of arrival and departure slots
-scA = {asl: 1000 for asl in AA}# UNBOUNDED FOR NOW
-scD = {dsl: 1000 for dsl in DA}# UNBOUNDED FOR NOW
+scA = {asl: 5 for asl in AA}
+scD = {dsl: 5 for dsl in DA}
 
-# Scheduled buffer time for each flight (set to 0 for now)
-sb = {f: 0 for f in F}
+# Scheduled buffer time for each flight
+sb = {f: 1 for f in F}
 
 # minimum turn time between flight f and fd with tail t
-mtt = {(t, f, fd): 0 for t in T for f in F for fd in F}
+mtt = {(t, f, fd): 1 for t in T for f in F for fd in F}
 
 # minimum connection time between flight f and fd in itinerary p
-mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
+mct = {(P.index(p), f, fd): 1 for p in P for f in F for fd in F}
 
 # Planned connection time between flights f and fd. It equals scheduled departure time of
 # flight fd minus the scheduled arrival time of flight f.
@@ -181,27 +182,28 @@ lf = {
 }
 
 # Upper bound on the delay, expressed in hours, corresponding to delay level ζ.
-small_theta = {z: 100 for z in Z}
+small_theta = {0: 1, 1: 2, 2: 5, 3: 10, 4: 72}
 
 # Extra fuel cost for delay absorption (through cruise speed increases) per hour for
 # flight f.
-fc = {f: 5000 for f in F}
+fc = {f: 30000 for f in F}
 
 # Sum of the cost of the loss of goodwill and the compensation cost (if any) for a
 # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
 # the passenger’s destination arrival delay via itinerary p′ compared with the planned
 # arrival time of itinerary p corresponds to delay level ζ
-pc = {(z, P.index(p), P.index(pd)): 200 for z in Z for p in P for pd in P}
+pc = {(z, P.index(p), P.index(pd)): 250 for z in Z for p in P for pd in P}
 
 # Per-flight schedule change penalty for not operating the flight using the originally
 # planned tail.
-kappa = 0 # UNBIOUNDED FOR NOW TO REMOVE X_HAT CONTRIBUTION
+kappa = 0  # UNBIOUNDED FOR NOW TO REMOVE X_HAT CONTRIBUTION
 
 # Starting location of planes (binary)
 tb = {(t, k): 0 for t in T for k in K}
 
-# One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-x_hat = {(f, t): 0 for f in F for t in T}
+x_hat = {
+    (f, t): 0 for f in F for t in T
+}  # UNBOUNDED (first solve calculates this value)
 
 P_sorted = sorted(P, key=len, reverse=True)
 
@@ -210,11 +212,12 @@ for airport in K:
     deperatures = FD_k[airport]
     for deperature in deperatures:
         for itin in P_sorted:
-            if deperature in itin and itin.index(deperature) == 0 and 1 not in [x_hat[(deperature,tail)] for tail in T]:
-                x_hat[(deperature, tail_count)] = 1
+            if (
+                deperature in itin
+                and itin.index(deperature) == 0
+                and 1 not in [x_hat[(deperature, tail)] for tail in T]
+            ):
                 tb[(tail_count, airport)] = 1
-                tail_count +=1
-         
-print("remaining data created")
-        
+                tail_count += 1
 
+print("remaining data created")

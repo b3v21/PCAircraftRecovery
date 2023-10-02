@@ -3,10 +3,59 @@ from gurobipy import *
 BIG_M = 999999999
 
 
-def generate_variables(m: Model) -> list[dict[list[int], Var]]:
+def generate_variables(
+    m: Model,
+    data: tuple,
+) -> list[dict[list[int], Var]]:
     """
     Generate variables for the model
     """
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
+
     # Variables
     # 1 if tail t is assigned to flight f
     x = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
@@ -93,14 +142,58 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
 def set_objective(
     m: Model,
     variables: list[dict[list[int], Var]],
-    optional_changes: tuple = (x_hat, kappa),
+    data: tuple,
 ) -> None:
     """
     Set the objective function for the model
     """
 
+    (
+        T,
+        F,
+        _,
+        Y,
+        Z,
+        P,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        F_t,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        CO_p,
+        oc,
+        dc,
+        _,
+        _,
+        rc,
+        theta,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        _,
+    ) = data
+
     x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
-    x_hat, kappa = optional_changes
 
     print("setting objective...")
     m.setObjective(
@@ -140,13 +233,60 @@ def set_objective(
 
 
 def flight_scheduling_constraints(
-    m: Model, variables: list[dict[list[int], Var]]
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    data: tuple,
 ) -> None:
     """
     Flight Scheduling Constraints
     """
 
     x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     print("adding flight scheduling constraints...")
 
@@ -155,7 +295,7 @@ def flight_scheduling_constraints(
 
 
 def sequencing_and_fleet_size_constraints(
-    m: Model, variables: list[dict[list[int], Var]]
+    m: Model, variables: list[dict[list[int], Var]], data: tuple
 ) -> None:
     """
     Sequencing & Fleet Size Constraints
@@ -165,6 +305,51 @@ def sequencing_and_fleet_size_constraints(
     """
 
     x, z, y, sigma, rho, phi, _, _, _, _, _, _, _, _, _, _ = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     print("adding sequencing and fleet size constraints... ")
 
@@ -222,12 +407,61 @@ def sequencing_and_fleet_size_constraints(
     }
 
 
-def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) -> None:
+def passenger_flow_constraints(
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    data: tuple,
+) -> None:
     """
     Passenger Flow Constraints
     """
 
     x, _, _, _, _, _, h, lambd, _, _, _, _, _, _, _, beta = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     print("adding passenger flow constraints...")
 
@@ -279,14 +513,58 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
 def airport_slot_constraints(
     m: Model,
     variables: list[dict[list[int], Var]],
-    optional_changes: tuple = (sta, std, AAF, DAF, FAA, FDA),
+    data: tuple,
 ) -> None:
     """
     Airport slot constraints
     """
 
-    sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, z, _, _, _, _, _, _, _, deltaA, deltaD, vA, vD, _, _, _ = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     print("adding airport slot constraints...")
 
@@ -355,12 +633,61 @@ def airport_slot_constraints(
     }
 
 
-def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) -> None:
+def flight_delay_constraints(
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    data: tuple,
+) -> None:
     """
     Flight Delay Constraints
     """
 
     x, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, gamma, _, _ = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     print("adding flight delay constraints...")
 
@@ -374,7 +701,10 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
     fdc_2 = {
         (f, fd, t): m.addConstr(
             deltaD[fd]
-            >= deltaA[f] + mtt - ct[f, fd] - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
+            >= deltaA[f]
+            + mtt[t, f, fd]
+            - ct[f, fd]
+            - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
         )
         for f in F
         for fd in CF_f[f]
@@ -385,15 +715,59 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
 def itinerary_feasibility_constraints(
     m: Model,
     variables: list[dict[list[int], Var]],
-    optional_changes: tuple = (sta, std, AAF, DAF, FAA, FDA),
+    data: tuple,
 ) -> None:
     """
     Itinerary Feasibility Constraints: Determine when an itinerary gets disrupted due
     to flight cancelations and due to flight retiming decisions, respectively.
     """
 
-    sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, z, _, _, _, _, _, lambd, _, deltaA, deltaD, _, _, _, _, _ = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     print("adding itinerary feasibility constraints...")
 
@@ -406,7 +780,8 @@ def itinerary_feasibility_constraints(
 
     ifc_2 = {
         (P.index(p), (f, fd)): m.addConstr(
-            std[fd] + deltaD[fd] - sta[f] - deltaA[f] >= mct - BIG_M * lambd[P.index(p)]
+            std[fd] + deltaD[fd] - sta[f] - deltaA[f]
+            >= mct[P.index(p), f, fd] - BIG_M * lambd[P.index(p)]
         )
         for p in P
         for (f, fd) in CF_p[P.index(p)]
@@ -417,14 +792,58 @@ def itinerary_feasibility_constraints(
 def itinerary_delay_constraints(
     m: Model,
     variables: list[dict[list[int], Var]],
-    optional_changes: tuple = (sta, std, AAF, DAF, FAA, FDA),
+    data: tuple,
 ) -> None:
     """
     Itinerary Delay Constraints
     """
 
-    sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, _, _, _, _, _, _, _, alpha, deltaA, _, _, _, _, tao, _ = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     print("adding itinerary delay constraints...")
 
@@ -459,13 +878,60 @@ def itinerary_delay_constraints(
 
 
 def beta_linearizing_constraints(
-    m: Model, variables: list[dict[list[int], Var]]
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    data: tuple,
 ) -> None:
     """
     Constraints which allow beta to behave like alpha * h, while being linear
     """
 
     _, _, _, _, _, _, h, _, alpha, _, _, _, _, _, _, beta = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     print("adding beta linearizing constraints...")
 
@@ -502,13 +968,62 @@ def beta_linearizing_constraints(
     }
 
 
-def generate_x_hat(m: Model, variables: list[dict[list[int], Var]]):
+def generate_x_hat(
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    data: tuple,
+):
     """
     Using the x values from the first optimization, generate x_hat values for the
     second optimization
     """
 
     x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
 
     x_hat = {}
 
@@ -519,8 +1034,56 @@ def generate_x_hat(m: Model, variables: list[dict[list[int], Var]]):
     return x_hat
 
 
-def generate_output(m: Model, variables: list[dict[list[int], Var]]) -> None:
+def generate_output(
+    m: Model, variables: list[dict[list[int], Var]], data: tuple
+) -> None:
     x, z, y, sigma, rho, phi, h, lambd, _, deltaA, deltaD, vA, vD, _, _, _ = variables
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = data
+
     print(78 * "-")
     print("\nFlight Information:")
     for f in F:

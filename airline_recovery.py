@@ -46,7 +46,7 @@ def run_aircraft_recovery() -> None:
     beta_linearizing_constraints(m, variables)
 
     print("optimizing to get xhat...")
-    m.setParam("OutputFlag", 0)
+    m.setParam("OutputFlag", 1)
     m.optimize()
 
     x_hat = generate_x_hat(m, variables)

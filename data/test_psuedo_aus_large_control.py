@@ -16,7 +16,7 @@ graph = create_graph(flight_distribution)
 print("graph created")
 
 num_flights = graph.count_all_flights()
-num_tails = 120  # This is somewhat arbitrary
+num_tails = num_flights  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
 num_delay_levels = 2  # This is somewhat arbitrary
@@ -69,8 +69,8 @@ FAA = {asl: [f for f in F if sta[f] <= asl[0]] for asl in AA}
 FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
 # Capacity of arrival and departure slots
-scA = {asl: 10 for asl in AA}
-scD = {dsl: 10 for dsl in DA}
+scA = {asl: 100 for asl in AA}
+scD = {dsl: 100 for dsl in DA}
 
 print("slot data created")
 
@@ -218,19 +218,15 @@ tb = {(t, k): 0 for t in T for k in K}
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
 x_hat = {(f, t): 0 for f in F for t in T}
 
-P_sorted = sorted(P, key=len, reverse=True)
+P_sorted = sorted(P, key=(lambda x : std[x[0]]))
 
 tail_count = 0
-for airport in K:
-    deperatures = FD_k[airport]
-    for deperature in deperatures:
-        for itin in P_sorted:
-            if (
-                deperature in itin
-                and itin.index(deperature) == 0
-                and 1 not in [x_hat[(deperature, tail)] for tail in T]
-            ):
-                tb[(tail_count, airport)] = 1
-                tail_count += 1
+
+for itin in P_sorted:
+    airport = DK_f[itin[0]]
+    tb[(tail_count, airport)] = 1
+    tail_count += 1
+    if tail_count == num_tails:
+        break
 
 print("remaining data created")

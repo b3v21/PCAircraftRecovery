@@ -31,7 +31,7 @@ def build_base_data() -> tuple:
     itin_classes = {1: 20, 2: 5, 3: 1}
 
     try:
-        P = generate_itineraries(graph, itin_classes)
+        P = generate_itineraries(graph, itin_classes, [])
     except RecursionError:
         print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 

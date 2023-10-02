@@ -635,16 +635,16 @@ def generate_output(
                                 print(
                                     f"Tail {t}: F{f} \t  \t {DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)})\t"
                                 )
-                                
+
     for t, cf in chained_flights.items():
-        output = ''
+        output = ""
         output = f"Tail {t}: "
         for i, f in enumerate(cf):
             output += f"F{f}"
             if i != len(cf) - 1:
                 output += " -> "
             else:
-                output += '\t '
+                output += "\t "
 
         for f in cf:
             output += f"{DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)}) \t"

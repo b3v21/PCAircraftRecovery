@@ -32,8 +32,8 @@ def build_base_data() -> tuple:
     # This represents the different types of itineraries which will be generated
     singles = []
     for p in range(num_flights):
-        singles.append([p]) 
-    itin_classes = {2: 15, 3:5}
+        singles.append([p])
+    itin_classes = {2: 15, 3: 5}
 
     try:
         P = generate_itineraries(graph, itin_classes, singles)
@@ -108,7 +108,6 @@ def build_base_data() -> tuple:
         for flight in flights:
             AK_f[flight] = airport
 
-
     # Set of flights fd compatible with a connection from flight f
     # fd is compatible if it is scheduled to depart from the arrival airport of flight f
     # and the scheduled arrival of f is before the scheduled departure of fd
@@ -139,11 +138,12 @@ def build_base_data() -> tuple:
 
     # One if flight f is the last flight of itinerary p, and zero otherwise.
     lf = {
-        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1]) for p in P for f in F
+        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1])
+        for p in P
+        for f in F
     }
 
     print("itinerary and flight data created")
-
 
     # Cost of operating flight f with tail t
     oc = {(t, f): 10000 for t in T for f in F}
@@ -186,10 +186,8 @@ def build_base_data() -> tuple:
     # minimum connection time between flight f and fd in itinerary p
     mct = {(P.index(p), f, fd): 1 for p in P for f in F for fd in F}
 
-
     # Upper bound on the delay, expressed in hours, corresponding to delay level ζ.
     small_theta = {0: 1, 1: 2, 2: 5, 3: 10, 4: 72}
-
 
     # Extra fuel cost for delay absorption (through cruise speed increases) per hour for
     # flight f.
@@ -201,9 +199,7 @@ def build_base_data() -> tuple:
     # arrival time of itinerary p corresponds to delay level ζ
     pc = {(z, P.index(p), P.index(pd)): 250 for z in Z for p in P for pd in P}
 
-
     print("cost data created")
-
 
     # Per-flight schedule change penalty for not operating the flight using the originally
     # planned tail.

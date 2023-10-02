@@ -181,12 +181,12 @@ theta = {
 sb = {f: 1 for f in F}
 
 # minimum turn time between flight f and fd with tail t
-mtt = 1 # FIX THIS SHIT ASAP
+mtt = 1  # FIX THIS SHIT ASAP
 
 
 # minimum connection time between flight f and fd in itinerary p
 # mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
-mct = 1 # Hardcoded for this example to reduce data creation time
+mct = 1  # Hardcoded for this example to reduce data creation time
 # FIX THIS ALSO
 
 

@@ -4,7 +4,7 @@ from math import floor
 from .build_psuedo_aus import *
 
 """
-This is a simple testcase for the psuedo_aus model.
+Generates the data for the medium size test of the psuedo aus flight network.
 """
 
 random.seed(59)

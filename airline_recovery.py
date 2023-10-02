@@ -1,87 +1,6 @@
 from gurobipy import *
-from data.test_psuedo_aus_large_control import *
 
 BIG_M = 999999999
-
-# QUESTIONS: is rho redundant?
-
-
-def run_aircraft_recovery() -> None:
-    """
-    basic initial implementation of Passenger-Centric Integrated Airline Schedule and
-    Aircraft Recovery.
-
-    Uses data imported from the file imported above.
-    """
-
-    m = Model("airline recovery basic")
-    variables = generate_variables(m)
-    x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
-
-    print("setting objective...")
-    set_objective(m, variables)
-
-    print("adding flight scheduling constraints...")
-    flight_scheduling_constraints(m, variables)
-
-    print("adding sequencing and fleet size constraints... ")
-    sequencing_and_fleet_size_constraints(m, variables)
-
-    print("adding passenger flow constraints...")
-    passenger_flow_constraints(m, variables)
-
-    print("adding airport slot constraints...")
-    airport_slot_constraints(m, variables)
-
-    print("adding flight delay constraints...")
-    flight_delay_constraints(m, variables)
-
-    print("adding itinerary feasibility constraints...")
-    itinerary_feasibility_constraints(m, variables)
-
-    print("adding itinerary delay constraints...")
-    itinerary_delay_constraints(m, variables)
-
-    print("adding beta linearizing constraints...")
-    beta_linearizing_constraints(m, variables)
-
-    print("optimizing to get xhat...")
-    m.setParam("OutputFlag", 0)
-    m.optimize()
-
-    x_hat = generate_x_hat(m, variables)
-
-    kappa = 1000
-
-    # Delay flight 0 by makings its arrival slot unavailable.
-    # AA.remove((54.0, 56.0))
-
-    # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
-    AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
-    DAF = {f: [i for i, slot in enumerate(DA) if std[f] <= slot[0]] for f in F}
-
-    # Set of flights compatible with arrive/departure slot asl/dsl (dict index by asl/dsl)
-    FAA = {asl: [f for f in F if sta[f] <= asl[1] and sta[f] >= asl[0]] for asl in AA}
-    FDA = {dsl: [f for f in F if std[f] <= dsl[1] and std[f] >= dsl[0]] for dsl in DA}
-
-    print("regenerate airport slot constraints with new FAA and FDA data...")
-    airport_slot_constraints(m, variables, (sta, std, AAF, DAF, FAA, FDA))
-
-    print("regenerate itinerary feasibility constraints with new FAA and FDA data...")
-    itinerary_feasibility_constraints(m, variables, (sta, std, AAF, DAF, FAA, FDA))
-
-    print("regenerate itinerary delay constraints with new FAA and FDA data...")
-    itinerary_delay_constraints(m, variables, (sta, std, AAF, DAF, FAA, FDA))
-
-    print("setting objective with new x_hat...")
-    set_objective(m, variables, (x_hat, kappa))
-
-    print("optimizing...")
-    m.setParam("OutputFlag", 1)
-    m.optimize()
-
-    print("generating output...")
-    generate_output(m, variables)
 
 
 def generate_variables(m: Model) -> list[dict[list[int], Var]]:
@@ -183,6 +102,7 @@ def set_objective(
     x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
     x_hat, kappa = optional_changes
 
+    print("setting objective...")
     m.setObjective(
         (
             quicksum(oc[t, f] * x[t, f] for t in T for f in F_t[t])
@@ -228,6 +148,8 @@ def flight_scheduling_constraints(
 
     x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
+    print("adding flight scheduling constraints...")
+
     # Every flight must be either flown using exactly one aircraft or must be cancelled
     fsc_1 = {f: m.addConstr(quicksum(x[t, f] for t in T_f[f]) + z[f] == 1) for f in F}
 
@@ -243,6 +165,8 @@ def sequencing_and_fleet_size_constraints(
     """
 
     x, z, y, sigma, rho, phi, _, _, _, _, _, _, _, _, _, _ = variables
+
+    print("adding sequencing and fleet size constraints... ")
 
     # Each non-cancelled flight has another flight after it operated by the same tail,
     # unless it is the last flight in the recovery period operated by that tail
@@ -305,6 +229,8 @@ def passenger_flow_constraints(m: Model, variables: list[dict[list[int], Var]]) 
 
     x, _, _, _, _, _, h, lambd, _, _, _, _, _, _, _, beta = variables
 
+    print("adding passenger flow constraints...")
+
     # All passengers are reassigned to some itinerary, which might be the same or
     # different from their originally scheduled itinerary (this include a null itinerary
     # if reassignment is not possible during the recovery period)
@@ -361,6 +287,8 @@ def airport_slot_constraints(
 
     sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, z, _, _, _, _, _, _, _, deltaA, deltaD, vA, vD, _, _, _ = variables
+
+    print("adding airport slot constraints...")
 
     # Start time of arrival slot asl is no later than the combined scheduled arrival time
     # and arrival delay of flight f, only if the arrival slot is assigned to flight f.
@@ -434,6 +362,8 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
 
     x, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, gamma, _, _ = variables
 
+    print("adding flight delay constraints...")
+
     # relate the departure and arrival delays of each flight via delay absorption through
     # increased cruise speed.
     fdc_1 = {f: m.addConstr(deltaA[f] >= deltaD[f] - gamma[f] - sb[f]) for f in F}
@@ -444,10 +374,7 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
     fdc_2 = {
         (f, fd, t): m.addConstr(
             deltaD[fd]
-            >= deltaA[f]
-            + mtt
-            - ct[f, fd]
-            - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
+            >= deltaA[f] + mtt - ct[f, fd] - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
         )
         for f in F
         for fd in CF_f[f]
@@ -468,6 +395,8 @@ def itinerary_feasibility_constraints(
     sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, z, _, _, _, _, _, lambd, _, deltaA, deltaD, _, _, _, _, _ = variables
 
+    print("adding itinerary feasibility constraints...")
+
     ifc_1 = {
         (f, p): m.addConstr(lambd[p] >= z[f])
         for f in F
@@ -477,8 +406,7 @@ def itinerary_feasibility_constraints(
 
     ifc_2 = {
         (P.index(p), (f, fd)): m.addConstr(
-            std[fd] + deltaD[fd] - sta[f] - deltaA[f]
-            >= mct - BIG_M * lambd[P.index(p)]
+            std[fd] + deltaD[fd] - sta[f] - deltaA[f] >= mct - BIG_M * lambd[P.index(p)]
         )
         for p in P
         for (f, fd) in CF_p[P.index(p)]
@@ -497,6 +425,8 @@ def itinerary_delay_constraints(
 
     sta, std, AAF, DAF, FAA, FDA = optional_changes
     _, _, _, _, _, _, _, _, alpha, deltaA, _, _, _, _, tao, _ = variables
+
+    print("adding itinerary delay constraints...")
 
     # Calculate the passenger arrival delay after the itinerary reassignment.
     idc_1 = {
@@ -536,6 +466,8 @@ def beta_linearizing_constraints(
     """
 
     _, _, _, _, _, _, h, _, alpha, _, _, _, _, _, _, beta = variables
+
+    print("adding beta linearizing constraints...")
 
     blc_1 = {
         (v, P.index(p), pd, g): m.addConstr(

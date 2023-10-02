@@ -1,5 +1,5 @@
 from gurobipy import *
-from data.test_psuedo_aus_medium_size import *
+from data.test_psuedo_aus_large_control import *
 
 BIG_M = 999999999
 
@@ -54,7 +54,7 @@ def run_aircraft_recovery() -> None:
     kappa = 1000
 
     # Delay flight 0 by makings its arrival slot unavailable.
-    AA.remove((54.0, 56.0))
+    # AA.remove((54.0, 56.0))
 
     # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
     AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
@@ -445,7 +445,7 @@ def flight_delay_constraints(m: Model, variables: list[dict[list[int], Var]]) ->
         (f, fd, t): m.addConstr(
             deltaD[fd]
             >= deltaA[f]
-            + mtt[t, f, fd]
+            + mtt
             - ct[f, fd]
             - BIG_M * (3 - x[t, f] - x[t, fd] - y[f, fd])
         )

@@ -7,8 +7,8 @@ from .build_psuedo_aus import *
 This is a simple testcase for the psuedo_aus model.
 """
 
-random.seed(59)
-num_flights = floor(random.normalvariate(500, 50))
+random.seed(69)
+num_flights = floor(random.normalvariate(100, 20))
 flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
@@ -39,7 +39,7 @@ itin_classes = {1: num_flights}
 # except RecursionError:
 #     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
-P = [[p] for p in F]
+P = [[p] for p in range(5)]
 
 print("itineraries created")
 
@@ -108,6 +108,7 @@ AK_f = {}
 for airport, flights in FA_k.items():
     for flight in flights:
         AK_f[flight] = airport
+        
 
 # Set of flights fd compatible with a connection from flight f
 # fd is compatible if it is scheduled to depart from the arrival airport of flight f
@@ -156,7 +157,7 @@ dc = {f: 12500 for f in F}
 n = {(v, P.index(p)): 25 for v in Y for p in P}
 
 # Seating capacity of tail t in T
-q = {t: 250 for t in T}
+q = {t: 10000000 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
@@ -178,11 +179,10 @@ theta = {
 }
 
 # Scheduled buffer time for each flight (set to 0 for now)
-sb = {f: 1 for f in F}
+sb = {f: 0 for f in F}
 
 # minimum turn time between flight f and fd with tail t
 mtt = 1 # FIX THIS SHIT ASAP
-
 
 # minimum connection time between flight f and fd in itinerary p
 # mct = {(P.index(p), f, fd): 0 for p in P for f in F for fd in F}
@@ -228,5 +228,8 @@ for itin in P_sorted:
     tail_count += 1
     if tail_count == num_tails:
         break
+    
+print([(DK_f[p[0]], AK_f[p[0]], std[p[0]], sta[p[0]]) for p in P])
+print([x for x in tb if tb[x] == 1])
 
 print("remaining data created")

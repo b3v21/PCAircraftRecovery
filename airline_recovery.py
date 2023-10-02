@@ -109,17 +109,17 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
 
     # number of passengers in fare class v, reassigned from itinerary p to itinerary p
     h = {
-        (p, pd, v): m.addVar() for v in Y for p in range(len(P)) for pd in range(len(P))
+        (P.index(p), P.index(pd), v): m.addVar() for v in Y for p in P for pd in P
     }
 
     # lambd[p] = 1 if itinerary p is disrupted
-    lambd = {p: m.addVar(vtype=GRB.BINARY) for p in range(len(P))}
+    lambd = {P.index(p): m.addVar(vtype=GRB.BINARY) for p in P}
 
     # 1 if itinerary p is reassigned to itinerary pd with delay level g
     alpha = {
-        (p, pd, g): m.addVar(vtype=GRB.BINARY)
-        for p in range(len(P))
-        for pd in range(len(P))
+        (P.index(p), P.index(pd), g): m.addVar(vtype=GRB.BINARY)
+        for p in P
+        for pd in P
         for g in Z
     }
 
@@ -139,15 +139,15 @@ def generate_variables(m: Model) -> list[dict[list[int], Var]]:
     gamma = {f: m.addVar() for f in F}
 
     # Arrival delay of itinerary pd with respect to planned arrival time of itinerary p
-    tao = {(p, pd): m.addVar(lb=-GRB.INFINITY) for p in range(len(P)) for pd in CO_p[p]}
+    tao = {(P.index(p), pd): m.addVar(lb=-GRB.INFINITY) for p in P for pd in CO_p[P.index(p)]}
 
     # number of passengers in fare class v with originally scheduled itinerary p,
     # reassigned to itinerary pd, corresponding to an arrival delay level ζ
     beta = {
-        (v, p, pd, g): m.addVar(vtype=GRB.INTEGER)
+        (v, P.index(p), pd, g): m.addVar(vtype=GRB.INTEGER)
         for v in Y
-        for p in range(len(P))
-        for pd in CO_p[p]
+        for p in P
+        for pd in CO_p[P.index(p)]
         for g in Z
     }
 
@@ -519,6 +519,7 @@ def itinerary_delay_constraints(
         for p in P
         for pd in CO_p[P.index(p)]
     }
+    
     idc_3 = {
         (P.index(p), pd): m.addConstr(
             quicksum(alpha[P.index(p), pd, g] for g in Z) == 1

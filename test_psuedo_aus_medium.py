@@ -265,51 +265,102 @@ def build_base_data() -> tuple:
 def test_psuedo_aus_medium_size():
     m = Model("airline recovery basic")
 
-    base_data = build_base_data()
-    variables = generate_variables(m, base_data)
-    set_objective(m, variables, base_data)
-    flight_scheduling_constraints(m, variables, base_data)
-    sequencing_and_fleet_size_constraints(m, variables, base_data)
-    passenger_flow_constraints(m, variables, base_data)
-    airport_slot_constraints(m, variables, base_data)
-    flight_delay_constraints(m, variables, base_data)
-    itinerary_feasibility_constraints(m, variables, base_data)
-    itinerary_delay_constraints(m, variables, base_data)
-    beta_linearizing_constraints(m, variables, base_data)
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = build_base_data()
+
+    variables = generate_variables(m, T, F, Y, Z, P, AA, DA, CO_p)
+    set_objective(
+        m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
+    )
+    flight_scheduling_constraints(m, variables, F, T_f)
+    sequencing_and_fleet_size_constraints(
+        m, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
+    )
+    passenger_flow_constraints(m, variables, F, Y, Z, P, T_f, CO_p, theta, n, q)
+    airport_slot_constraints(
+        m, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
+    )
+    flight_delay_constraints(m, variables, T, F, T_f, CF_f, sb, mtt, ct)
+    itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
+    itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
+    beta_linearizing_constraints(m, variables, Y, Z, P, CO_p)
 
     print("optimizing to get xhat...")
     m.setParam("OutputFlag", 0)
     m.optimize()
 
-    x_hat = generate_x_hat(m, variables, base_data)
-
-    new_data = list(base_data)
+    x_hat = generate_x_hat(m, variables, F, T)
 
     # Delay flight 0 by makings its arrival slot unavailable.
-    new_data[8].remove((54.0, 56.0))
-    new_data[-3] = 1000
+    AA.remove((54.0, 56.0))
+    kappa = 1000
 
     # Generate new data
-    new_data[10] = {
-        f: [i for i, slot in enumerate(new_data[8]) if new_data[6][f] <= slot[0]]
-        for f in new_data[1]
-    }
-    new_data[12] = {
-        asl: [f for f in new_data[1] if new_data[6][f] <= asl[1] and new_data[6][f] >= asl[0]]
-        for asl in new_data[8]
-    }
+    AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
+    DAF = {f: [i for i, slot in enumerate(DA) if std[f] <= slot[0]] for f in F}
+
+    FAA = {asl: [f for f in F if sta[f] <= asl[0]] for asl in AA}
+    FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
     print("Regenerate neccecary constraints...")
-    airport_slot_constraints(m, variables, tuple(new_data))
-    itinerary_feasibility_constraints(m, variables, tuple(new_data))
-    itinerary_delay_constraints(m, variables, tuple(new_data))
-    set_objective(m, variables, tuple(new_data))
+    airport_slot_constraints(
+        m, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
+    )
+    itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
+    itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
+    set_objective(
+        m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
+    )
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
     m.optimize()
 
     print("generating output...")
-    generate_output(m, variables, tuple(new_data))
+    generate_output(
+        m, variables, T, F, Y, Z, P, sta, std, AA, DA, DK_f, AK_f, CF_f, n, fc
+    )
 
-    assert round(m.objVal, 6) == 1.279750001490e+06
+    assert round(m.objVal, 6) == 1267750.00149

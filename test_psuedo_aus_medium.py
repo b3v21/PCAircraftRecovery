@@ -7,14 +7,28 @@ from math import floor
 
 random.seed(59)
 
+num_flights = floor(random.normalvariate(20, 1))
+flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
+graph = create_graph(flight_distribution)
+print("graph created")
+
+itin_classes = {1: 20, 2: 5, 3: 1}
+
+try:
+    P = generate_itineraries(graph, itin_classes, [])
+except RecursionError:
+    print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+
+print("\nitineraries created")
+print(P, "\n")
+
+print("Graph")
+for node, neigh in graph.adj_list.items():
+    print(node, ": ", [n for n in neigh if n[1] is not None])
+print()
+
 
 def build_base_data() -> tuple:
-    num_flights = floor(random.normalvariate(20, 1))
-    flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
-    graph = create_graph(flight_distribution)
-
-    print("graph created")
-
     num_flights = graph.count_all_flights()
     num_tails = 30
     num_airports = 10
@@ -27,21 +41,6 @@ def build_base_data() -> tuple:
     K = AIRPORTS
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
-
-    itin_classes = {1: 20, 2: 5, 3: 1}
-
-    try:
-        P = generate_itineraries(graph, itin_classes, [])
-    except RecursionError:
-        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-
-    print("\nitineraries created")
-    print(P, "\n")
-
-    print("Graph")
-    for node, neigh in graph.adj_list.items():
-        print(node, ": ", [n for n in neigh if n[1] is not None])
-    print()
 
     # Construct arrival and departure times
     std = {}
@@ -115,6 +114,7 @@ def build_base_data() -> tuple:
             P.index(pd)
             for pd in P
             if pd != [] and DK_f[pd[0]] == DK_f[p[0]] and AK_f[pd[-1]] == AK_f[p[-1]]
+            and std[pd[0]] >= std[p[0]] and sta[pd[-1]] >= sta[p[-1]]
         ]
         for p in P
         if p != []
@@ -155,7 +155,7 @@ def build_base_data() -> tuple:
     scD = {dsl: 5 for dsl in DA}
 
     # Scheduled buffer time for each flight
-    sb = {f: 1 for f in F}
+    sb = {f: 0 for f in F}
 
     # minimum turn time between flight f and fd with tail t
     mtt = {(t, f, fd): 1 for t in T for f in F for fd in F}
@@ -259,8 +259,13 @@ def build_base_data() -> tuple:
     )
 
 
-def test_psuedo_aus_medium_size():
-    m = Model("airline recovery aus medium")
+def test_standard_solve():
+    """
+    Generates the base data, runs a solve to get x_hat, and then runs another solve and confirms
+    the value is as expected and no rescheduling has to occur.
+    """
+
+    standard_solve = Model("test_standard_solve")
 
     (
         T,
@@ -307,28 +312,216 @@ def test_psuedo_aus_medium_size():
         tb,
     ) = build_base_data()
 
-    variables = generate_variables(m, T, F, Y, Z, P, AA, DA, CO_p)
+    variables = generate_variables(standard_solve, T, F, Y, Z, P, AA, DA, CO_p)
     set_objective(
-        m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
+        standard_solve,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
     )
-    flight_scheduling_constraints(m, variables, F, T_f)
+    flight_scheduling_constraints(standard_solve, variables, F, T_f)
     sequencing_and_fleet_size_constraints(
-        m, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
+        standard_solve, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
     )
-    passenger_flow_constraints(m, variables, F, Y, Z, P, T_f, CO_p, theta, n, q)
+    passenger_flow_constraints(
+        standard_solve, variables, F, Y, Z, P, T_f, CO_p, theta, n, q
+    )
     airport_slot_constraints(
-        m, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
+        standard_solve, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
     )
-    flight_delay_constraints(m, variables, T, F, T_f, CF_f, sb, mtt, ct)
-    itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
-    itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
-    beta_linearizing_constraints(m, variables, Y, Z, P, CO_p)
+    flight_delay_constraints(standard_solve, variables, T, F, T_f, CF_f, sb, mtt, ct)
+    itinerary_feasibility_constraints(
+        standard_solve, variables, F, P, sta, std, CF_p, mct
+    )
+    itinerary_delay_constraints(
+        standard_solve, variables, F, Z, P, sta, CO_p, lf, small_theta
+    )
+    beta_linearizing_constraints(standard_solve, variables, Y, Z, P, CO_p)
 
     print("optimizing to get xhat...")
-    m.setParam("OutputFlag", 0)
-    m.optimize()
+    standard_solve.setParam("OutputFlag", 0)
+    standard_solve.optimize()
 
-    x_hat = generate_x_hat(m, variables, F, T)
+    original_obj_val = standard_solve.objVal
+
+    x_hat = generate_x_hat(standard_solve, variables, F, T)
+    kappa = 1000
+
+    set_objective(
+        standard_solve,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+    )
+
+    print("optimizing...")
+    standard_solve.setParam("OutputFlag", 1)
+    standard_solve.optimize()
+
+    print("generating output...")
+    generate_output(
+        standard_solve,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        DK_f,
+        AK_f,
+        CF_f,
+        n,
+        fc,
+    )
+
+    assert round(standard_solve.objVal, 2) == round(original_obj_val, 2)
+
+
+def test_reschedule_slot_cancel():
+    """
+    Generates the base data, runs a solve to get x_hat, and then removes the arrival slot
+    for flight 0, causing it to be delayed to the next slot. This causes the objective value to
+    increase and some itineraries to be disrupted.
+    """
+
+    test_reschedule_slot_cancel = Model("test_reschedule_slot_cancel")
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = build_base_data()
+
+    variables = generate_variables(
+        test_reschedule_slot_cancel, T, F, Y, Z, P, AA, DA, CO_p
+    )
+    set_objective(
+        test_reschedule_slot_cancel,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+    )
+    flight_scheduling_constraints(test_reschedule_slot_cancel, variables, F, T_f)
+    sequencing_and_fleet_size_constraints(
+        test_reschedule_slot_cancel, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
+    )
+    passenger_flow_constraints(
+        test_reschedule_slot_cancel, variables, F, Y, Z, P, T_f, CO_p, theta, n, q
+    )
+    airport_slot_constraints(
+        test_reschedule_slot_cancel,
+        variables,
+        F,
+        Z,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        scA,
+        scD,
+    )
+    flight_delay_constraints(
+        test_reschedule_slot_cancel, variables, T, F, T_f, CF_f, sb, mtt, ct
+    )
+    itinerary_feasibility_constraints(
+        test_reschedule_slot_cancel, variables, F, P, sta, std, CF_p, mct
+    )
+    itinerary_delay_constraints(
+        test_reschedule_slot_cancel, variables, F, Z, P, sta, CO_p, lf, small_theta
+    )
+    beta_linearizing_constraints(test_reschedule_slot_cancel, variables, Y, Z, P, CO_p)
+
+    print("optimizing to get xhat...")
+    test_reschedule_slot_cancel.setParam("OutputFlag", 0)
+    test_reschedule_slot_cancel.optimize()
+
+    x_hat = generate_x_hat(test_reschedule_slot_cancel, variables, F, T)
 
     # Delay flight 0 by makings its arrival slot unavailable.
     AA.remove((54.0, 56.0))
@@ -343,21 +536,465 @@ def test_psuedo_aus_medium_size():
 
     print("Regenerate neccecary constraints...")
     airport_slot_constraints(
-        m, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
+        test_reschedule_slot_cancel,
+        variables,
+        F,
+        Z,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        scA,
+        scD,
     )
-    itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
-    itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
+    itinerary_feasibility_constraints(
+        test_reschedule_slot_cancel, variables, F, P, sta, std, CF_p, mct
+    )
+    itinerary_delay_constraints(
+        test_reschedule_slot_cancel, variables, F, Z, P, sta, CO_p, lf, small_theta
+    )
     set_objective(
-        m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
+        test_reschedule_slot_cancel,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
     )
 
     print("optimizing...")
-    m.setParam("OutputFlag", 1)
-    m.optimize()
+    test_reschedule_slot_cancel.setParam("OutputFlag", 1)
+    test_reschedule_slot_cancel.optimize()
 
     print("generating output...")
     generate_output(
-        m, variables, T, F, Y, Z, P, sta, std, AA, DA, DK_f, AK_f, CF_f, n, fc
+        test_reschedule_slot_cancel,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        DK_f,
+        AK_f,
+        CF_f,
+        n,
+        fc,
     )
 
-    assert round(m.objVal, 6) == 1267750.00149
+    assert round(test_reschedule_slot_cancel.objVal, 5) == 1313999.99845
+
+
+def test_reschedule_flight_cancel():
+    """
+    Generates the base data, runs a solve to get x_hat, and then remove flight 0.
+    This causes the objective value to increase and some itineraries to be disrupted.
+    """
+
+    test_reschedule_flight_cancel = Model("test_reschedule_flight_cancel")
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = build_base_data()
+
+    variables = generate_variables(
+        test_reschedule_flight_cancel, T, F, Y, Z, P, AA, DA, CO_p
+    )
+    set_objective(
+        test_reschedule_flight_cancel,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+    )
+    flight_scheduling_constraints(test_reschedule_flight_cancel, variables, F, T_f)
+    sequencing_and_fleet_size_constraints(
+        test_reschedule_flight_cancel, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
+    )
+    passenger_flow_constraints(
+        test_reschedule_flight_cancel, variables, F, Y, Z, P, T_f, CO_p, theta, n, q
+    )
+    airport_slot_constraints(
+        test_reschedule_flight_cancel,
+        variables,
+        F,
+        Z,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        scA,
+        scD,
+    )
+    flight_delay_constraints(
+        test_reschedule_flight_cancel, variables, T, F, T_f, CF_f, sb, mtt, ct
+    )
+    itinerary_feasibility_constraints(
+        test_reschedule_flight_cancel, variables, F, P, sta, std, CF_p, mct
+    )
+    itinerary_delay_constraints(
+        test_reschedule_flight_cancel, variables, F, Z, P, sta, CO_p, lf, small_theta
+    )
+    beta_linearizing_constraints(
+        test_reschedule_flight_cancel, variables, Y, Z, P, CO_p
+    )
+
+    print("optimizing to get xhat...")
+    test_reschedule_flight_cancel.setParam("OutputFlag", 0)
+    test_reschedule_flight_cancel.optimize()
+
+    original_obj_val = test_reschedule_flight_cancel.objVal
+
+    x_hat = generate_x_hat(test_reschedule_flight_cancel, variables, F, T)
+    kappa = 1000
+
+    print("Regenerate neccecary constraints...")
+    airport_slot_constraints(
+        test_reschedule_flight_cancel,
+        variables,
+        F,
+        Z,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        scA,
+        scD,
+    )
+    itinerary_feasibility_constraints(
+        test_reschedule_flight_cancel, variables, F, P, sta, std, CF_p, mct
+    )
+    itinerary_delay_constraints(
+        test_reschedule_flight_cancel, variables, F, Z, P, sta, CO_p, lf, small_theta
+    )
+    set_objective(
+        test_reschedule_flight_cancel,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+    )
+
+    print("optimizing...")
+    test_reschedule_flight_cancel.setParam("OutputFlag", 1)
+
+    _, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    z[12].lb = 1
+    z[12].ub = 1
+
+    test_reschedule_flight_cancel.optimize()
+
+    print("generating output...")
+    generate_output(
+        test_reschedule_flight_cancel,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        DK_f,
+        AK_f,
+        CF_f,
+        n,
+        fc,
+    )
+
+    assert round(test_reschedule_flight_cancel.objVal, 5) == 1193000.00149
+
+
+def test_reschedule_airport_shutdown():
+    """
+    Generates the base data, runs a solve to get x_hat, and then closes down the BNE airport
+    between hours 50 & 55.
+
+    Because the airport closures are typically out of control of an individual airline,
+    Regulation (EC) No 261/2004 does not apply, and passengers are not required to be compensated.
+    However, they must be provided with reaccommodation.
+    """
+
+    test_reschedule_airport_shutdown = Model("test_reschedule_airport_shutdown")
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+    ) = build_base_data()
+
+    variables = generate_variables(
+        test_reschedule_airport_shutdown, T, F, Y, Z, P, AA, DA, CO_p
+    )
+    set_objective(
+        test_reschedule_airport_shutdown,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+    )
+    flight_scheduling_constraints(test_reschedule_airport_shutdown, variables, F, T_f)
+    sequencing_and_fleet_size_constraints(
+        test_reschedule_airport_shutdown, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
+    )
+    passenger_flow_constraints(
+        test_reschedule_airport_shutdown, variables, F, Y, Z, P, T_f, CO_p, theta, n, q
+    )
+    airport_slot_constraints(
+        test_reschedule_airport_shutdown,
+        variables,
+        F,
+        Z,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        scA,
+        scD,
+    )
+    flight_delay_constraints(
+        test_reschedule_airport_shutdown, variables, T, F, T_f, CF_f, sb, mtt, ct
+    )
+    itinerary_feasibility_constraints(
+        test_reschedule_airport_shutdown, variables, F, P, sta, std, CF_p, mct
+    )
+    itinerary_delay_constraints(
+        test_reschedule_airport_shutdown, variables, F, Z, P, sta, CO_p, lf, small_theta
+    )
+    beta_linearizing_constraints(
+        test_reschedule_airport_shutdown, variables, Y, Z, P, CO_p
+    )
+
+    print("optimizing to get xhat...")
+    test_reschedule_airport_shutdown.setParam("OutputFlag", 0)
+    test_reschedule_airport_shutdown.optimize()
+
+    original_obj_val = test_reschedule_airport_shutdown.objVal
+
+    # Close down airport 'BNE' between hours 50 & 55:
+    _, _, _, _, _, _, _, _, _, deltaA, deltaD, _, _, _, _, _ = variables
+
+    for node in graph.adj_list.keys():
+        for neigh in graph.get_neighbours(node):
+            if neigh[1] is not None:
+                # Departing Brisbane
+                if all(
+                    [
+                        node.get_name() == "SYD",
+                        node.time >= 50,
+                        node.time <= 70,
+                    ]
+                ):
+                    deltaA[neigh[1]].lb = 70 - sta[neigh[1]]
+                    deltaD[neigh[1]].lb = 70 - std[neigh[1]]
+
+                # Arriving to Brisbane
+                if all(
+                    [
+                        neigh[0].get_name() == "SYD",
+                        neigh[0].time >= 50,
+                        neigh[0].time <= 70,
+                    ]
+                ):
+                    deltaA[neigh[1]].lb = 70 - sta[neigh[1]]
+                    deltaD[neigh[1]].lb = 70 - std[neigh[1]]
+
+    x_hat = generate_x_hat(test_reschedule_airport_shutdown, variables, F, T)
+    kappa = 1000
+
+    print("Regenerate neccecary constraints...")
+    pc = {(z, P.index(p), P.index(pd)): 0 for z in Z for p in P for pd in P}
+    set_objective(
+        test_reschedule_airport_shutdown,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+    )
+
+    print("optimizing...")
+    test_reschedule_airport_shutdown.setParam("OutputFlag", 1)
+    test_reschedule_airport_shutdown.optimize()
+
+    print("generating output...")
+    generate_output(
+        test_reschedule_airport_shutdown,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        DK_f,
+        AK_f,
+        CF_f,
+        n,
+        fc,
+    )
+
+    assert round(test_reschedule_airport_shutdown.objVal, 6) == 1877999.968588

@@ -6,18 +6,29 @@ import numpy as np
 from math import floor
 
 random.seed(59)
+graph_nodes = floor(random.normalvariate(40, 1))
+flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
+graph = create_graph(flight_distribution)
+num_flights = graph.count_all_flights()
+print("graph created")
+
+# This represents the different types of itineraries which will be generated
+singles = []
+for p in range(num_flights):
+    singles.append([p])
+
+itin_classes = {}
+try:
+    P = generate_itineraries(graph, itin_classes, singles)
+except RecursionError:
+    print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+
+print([p for p in P if len(p) > 1])
+print("itineraries created")
 
 def build_base_data() -> tuple:
-    num_flights = floor(random.normalvariate(250, 10))
-    flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
-
-    graph = create_graph(flight_distribution)
-
-    print("graph created")
-
-    num_flights = graph.count_all_flights()
-    num_tails = 120  # This is somewhat arbitrary
+    num_tails = 40  # This is somewhat arbitrary
     num_airports = 10
     num_fare_classes = 2  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
@@ -28,19 +39,6 @@ def build_base_data() -> tuple:
     K = AIRPORTS
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
-
-    # This represents the different types of itineraries which will be generated
-    singles = []
-    for p in range(num_flights):
-        singles.append([p])
-    itin_classes = {2: 15, 3: 5}
-
-    try:
-        P = generate_itineraries(graph, itin_classes, singles)
-    except RecursionError:
-        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-
-    print("itineraries created")
 
     # DEBUG GRAPH PRINTS
     # for node, neigh in graph.adj_list.items():
@@ -68,8 +66,8 @@ def build_base_data() -> tuple:
     FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
     # Capacity of arrival and departure slots
-    scA = {asl: 10 for asl in AA}
-    scD = {dsl: 10 for dsl in DA}
+    scA = {asl: 100 for asl in AA}
+    scD = {dsl: 100 for dsl in DA}
 
     print("slot data created")
 
@@ -119,6 +117,7 @@ def build_base_data() -> tuple:
     # Subset of itineraries compatible with a reassignment from an original itinerary p.
     # itinary p is compatible for a reassignment with itinary pd if they both share the
     # same start and end destination
+
     CO_p = {
         P.index(p): [
             P.index(pd)
@@ -127,7 +126,6 @@ def build_base_data() -> tuple:
             and DK_f[pd[0]] == DK_f[p[0]]
             and AK_f[pd[-1]] == AK_f[p[-1]]
             and std[pd[0]] >= std[p[0]]
-            and sta[pd[-1]] >= sta[p[-1]]
         ]
         for p in P
         if p != []
@@ -157,7 +155,7 @@ def build_base_data() -> tuple:
 
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
-    n = {(v, P.index(p)): 50 if len(p) == 1 else 20 for v in Y for p in P}
+    n = {(v, P.index(p)): 50 for v in Y for p in P}
 
     # Seating capacity of tail t in T
     q = {t: 250 for t in T}
@@ -216,7 +214,6 @@ def build_base_data() -> tuple:
     x_hat = {(f, t): 0 for f in F for t in T}
 
     P_sorted = sorted(P, key=(lambda x: std[x[0]]))
-
     tail_count = 0
 
     for itin in P_sorted:
@@ -326,7 +323,7 @@ def test_psuedo_aus_large_size():
     set_objective(
         m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
     )
-    flight_scheduling_constraints(m, variables, F, T_f)
+    # flight_scheduling_constraints(m, variables, F, T_f)
     sequencing_and_fleet_size_constraints(
         m, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
     )
@@ -340,13 +337,11 @@ def test_psuedo_aus_large_size():
     beta_linearizing_constraints(m, variables, Y, Z, P, CO_p)
 
     print("optimizing to get xhat...")
-    m.setParam("OutputFlag", 0)
+    m.setParam("OutputFlag", 1)
     m.optimize()
 
     x_hat = generate_x_hat(m, variables, F, T)
 
-    # Delay flight 0 by makings its arrival slot unavailable.
-    AA.remove((54.0, 56.0))
     kappa = 1000
 
     # Generate new data

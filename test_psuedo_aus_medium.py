@@ -117,7 +117,6 @@ def build_base_data() -> tuple:
             and DK_f[pd[0]] == DK_f[p[0]]
             and AK_f[pd[-1]] == AK_f[p[-1]]
             and std[pd[0]] >= std[p[0]]
-            and sta[pd[-1]] >= sta[p[-1]]
         ]
         for p in P
         if p != []

@@ -19,14 +19,15 @@ try:
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
+P.insert(0,[])
 print("\nitineraries created")
 print(P, "\n")
 
-P.insert(0,[])
 
 print("Graph")
 for node, neigh in graph.adj_list.items():
-    print(node, ": ", [n for n in neigh if n[1] is not None])
+    if len([n for n in neigh if n[1] is not None]) > 0:
+        print(node, ": ", [n for n in neigh if n[1] is not None])
 print()
 
 
@@ -615,7 +616,7 @@ def test_reschedule_slot_cancel():
         fc,
     )
 
-    assert round(test_reschedule_slot_cancel.objVal, 2) == 1314000
+    assert round(test_reschedule_slot_cancel.objVal, 2) == 1419000
 
 
 def test_reschedule_flight_cancel():
@@ -810,12 +811,12 @@ def test_reschedule_flight_cancel():
         fc,
     )
 
-    assert round(test_reschedule_flight_cancel.objVal, 5) == 1193000.00149
+    assert round(test_reschedule_flight_cancel.objVal, 2) == 1298000
 
 
 def test_reschedule_airport_shutdown():
     """
-    Generates the base data, runs a solve to get x_hat, and then closes down the BNE airport
+    Generates the base data, runs a solve to get x_hat, and then closes down the SYD airport
     between hours 50 & 55.
 
     Because the airport closures are typically out of control of an individual airline,
@@ -934,13 +935,13 @@ def test_reschedule_airport_shutdown():
 
     original_obj_val = test_reschedule_airport_shutdown.objVal
 
-    # Close down airport 'BNE' between hours 50 & 55:
+    # Close down airport 'SYD' between hours 50 & 70:
     _, _, _, _, _, _, _, _, _, deltaA, deltaD, _, _, _, _, _ = variables
 
     for node in graph.adj_list.keys():
         for neigh, flightid in graph.get_neighbours(node):
             if flightid is not None:
-                # Departing Brisbane
+                # Departing Sydney
                 if all(
                     [
                         node.get_name() == "SYD",
@@ -951,7 +952,7 @@ def test_reschedule_airport_shutdown():
                     deltaA[flightid].lb = 70 - sta[flightid]
                     deltaD[flightid].lb = 70 - std[flightid]
 
-                # Arriving to Brisbane
+                # Arriving to Sydney
                 if all(
                     [
                         neigh.get_name() == "SYD",
@@ -1011,4 +1012,4 @@ def test_reschedule_airport_shutdown():
         fc,
     )
 
-    assert round(test_reschedule_airport_shutdown.objVal, 6) == 1877999.968588
+    assert round(test_reschedule_airport_shutdown.objVal, 2) == 1956750

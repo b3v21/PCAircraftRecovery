@@ -36,21 +36,21 @@ def divide_number(number, divider, start_min_bound, start_max_bound):
     """
     Code from online, used to divide a number into a given number of parts
     """
-    
+
     step_inc = floor(1 - start_max_bound / divider)
-    
+
     min_bound = start_min_bound
     max_bound = start_max_bound
 
     result = []
-    for i in range(divider):          
+    for i in range(divider):
         try:
-            part = randrange(floor(max_bound*number), floor(max_bound*number))
-        except: 
-            part = floor(max_bound*number)
+            part = randrange(floor(max_bound * number), floor(max_bound * number))
+        except:
+            part = floor(max_bound * number)
         result.append(part)
         number -= part
-        
+
         min_bound += step_inc
         max_bound += step_inc
     return result
@@ -193,19 +193,17 @@ def generate_flight_arc(
     flight_time = calculate_time((node.lat, node.long), (dest_node.lat, dest_node.long))
 
     # Randomise time flight is scheduled to depart
-    departure_time = round(
-        random.random() * TIME_HORIZON - ceil(flight_time), 1
-    )  
+    departure_time = round(random.random() * TIME_HORIZON - ceil(flight_time), 1)
     while departure_time < 0:
-        departure_time = round(
-        random.random() * TIME_HORIZON - ceil(flight_time), 1
-    )  
+        departure_time = round(random.random() * TIME_HORIZON - ceil(flight_time), 1)
     departure_node = node.new_time_copy(departure_time, current_node_id)
 
     # if departure_node in graph.adj_list:
     graph.add_neigh_to_node(
         departure_node,
-        dest_node.new_time_copy(round(departure_time + flight_time,1), current_node_id + 1),
+        dest_node.new_time_copy(
+            round(departure_time + flight_time, 1), current_node_id + 1
+        ),
         current_flight_id,
     )
 
@@ -288,8 +286,10 @@ def itinerary_builder(
     return itinerary_builder(graph, length, itin, P)
 
 
-def generate_itineraries(graph: AdjanecyList, itin_classes: dict[int, int]) -> list:
-    P = []
+def generate_itineraries(
+    graph: AdjanecyList, itin_classes: dict[int, int], singles: list[list[int]]
+) -> list:
+    P = singles
 
     for length, num_itins in itin_classes.items():
         for _ in range(num_itins):

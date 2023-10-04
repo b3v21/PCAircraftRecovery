@@ -63,7 +63,6 @@ Delay Levels
 """
 
 
-
 num_flights = 5
 num_tails = 5
 num_airports = 5
@@ -74,26 +73,26 @@ num_delay_levels = 5
 ########
 # Sets #
 ########
-T = range(num_tails) # Set of tails
-F = range(num_flights) # Set of flights
-P = [[0, 1, 3],[0, 2, 4]] # Set of itineraries
-K = range(num_airports) # Set of airports
-Y = range(num_fare_classes) # Set of fare classes
-Z = range(num_delay_levels) # Set of delay levels
+T = range(num_tails)  # Set of tails
+F = range(num_flights)  # Set of flights
+P = [[0, 1, 3], [0, 2, 4]]  # Set of itineraries
+K = range(num_airports)  # Set of airports
+Y = range(num_fare_classes)  # Set of fare classes
+Z = range(num_delay_levels)  # Set of delay levels
 
 # Scheduled arrival (departure) time for flight f in F
-std = {0: 1, 1: 86, 2:106, 3:136, 4:146}
-sta = {0:61, 1:116, 2:126, 3:196, 4:206}
+std = {0: 1, 1: 86, 2: 106, 3: 136, 4: 146}
+sta = {0: 61, 1: 116, 2: 126, 3: 196, 4: 206}
 
 # Arrival and Depature slots
-DA = [(0,15),(81,96),(101,116),(131,146),(141,156)]
-AA = [(56,71),(111,126),(121,136),(191,206),(201,216)] 
+DA = [(0, 15), (81, 96), (101, 116), (131, 146), (141, 156)]
+AA = [(56, 71), (111, 126), (121, 136), (191, 206), (201, 216)]
 
 # Set of arrival and departure slots compatible with flight f
 AAF = {
     f: [i for i, slot in enumerate(AA) if sta[f] <= slot[1] and sta[f] >= slot[0]]
     for f in F
-    }
+}
 
 DAF = {
     f: [i for i, slot in enumerate(DA) if std[f] <= slot[1] and std[f] >= slot[0]]
@@ -112,13 +111,13 @@ F_t = {t: list(F) for t in T}
 T_f = {f: [t for t in T if f in F_t[t]] for f in F}
 
 # Set of flights f which arrive to airport k
-FA_k = {0:[], 1:[0], 2:[2], 3:[1], 4:[4]}
+FA_k = {0: [], 1: [0], 2: [2], 3: [1], 4: [4]}
 
 # Airport that flight f arrives at (this isnt actually data in the paper)
-AK_f = {0:1, 1:3, 2:2, 3:4, 4:4} 
+AK_f = {0: 1, 1: 3, 2: 2, 3: 4, 4: 4}
 
 # Set of flights f which depart from airport k
-FD_k = {0:[0], 1:[1,2], 2:[4], 3:[3], 4:[]}
+FD_k = {0: [0], 1: [1, 2], 2: [4], 3: [3], 4: []}
 
 # Airport that flight f departs from (this isn't actually data in the paper)
 DK_f = {0:0, 1:1, 2:1, 3:3, 4:2} 
@@ -227,7 +226,7 @@ mct = {(P.index(p),f,fd): 0 for p in P for fd in F for f in F}
 ct = {(f,fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
 
 # set of ordered flight pairs of consecutive flights in itinary p.
-CF_p = {0:[(0,1),(1,3)],1:[(0,2),(2,4)]}
+CF_p = {0: [(0, 1), (1, 3)], 1: [(0, 2), (2, 4)]}
 
 # One if flight f is the last flight of itinerary p, and zero otherwise.
 lf = {(P.index(p),f): 0 for p in P for f in F}
@@ -239,7 +238,7 @@ small_theta = {0:59, 1:119, 2:179, 3:239, 4:1000}
 
 # Extra fuel cost for delay absorption (through cruise speed increases) per minute for
 # flight f.
-fc = {f:100 for f in F}
+fc = {f: 100 for f in F}
 
 # Sum of the cost of the loss of goodwill and the compensation cost (if any) for a
 # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if

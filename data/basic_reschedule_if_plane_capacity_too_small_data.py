@@ -1,22 +1,22 @@
 from collections import deque
 
 """
-This is a test for checking passenger reassignment between itineraries
+This will test that a flight is flown is reassigned to a cheaper tail
 
-Original:               (T0) F0 (depart A0, arrive A1)   ITINERARY: 0
-Goal Reassignment:      (T1) F1 (depart A0, arrive A1)   ITINERARY: 1
+Reassigns F0: (depart A0, arrive A1) from T0 to T1 due to T0 not having enough seats
 """
+
 
 num_flights = 2
 num_tails = 2
-num_airports = 2
+num_airports = 3
 num_fare_classes = 2
 num_delay_levels = 2
 
 # Sets
 T = range(num_tails)
 F = range(num_flights)
-P = [[0], [1]]  # Set of itineraries
+P = [[i, i + 1] for i in range(0, num_flights, 2)]  # Set of itineraries
 K = range(num_airports)
 Y = range(num_fare_classes)
 Z = range(num_delay_levels)
@@ -53,24 +53,30 @@ T_f = {f: [t for t in T if f in F_t[t]] for f in F}
 
 # Set of flights f which arrive to airport k
 flights = [f for f in F]
+FA_k = {}
+for k in K:
+    FA_k[k] = []
 
-# Set of flights f which arrive to airport k
-FA_k = {0: [], 1: [0, 1]}
+AK_f = {}  # Airport that flight f arrives at (this isnt actually data in the paper)
 
-# Airport that flight f arrives at (this isnt actually data in the paper)
-AK_f = {0: 1, 1: 1}
+for f in F:
+    if f % 2 == 0:
+        FA_k[1].append(f)
+        AK_f[f] = 1
+    else:
+        FA_k[2].append(f)
+        AK_f[f] = 2
 
 # Set of flights f which depart from airport k
-FD_k = {0: [0, 1], 1: []}
-
-DA_k = {}
-for f in F:
-    DA_k[f] = -1
+FD_k = {}
+for k in K:
+    FD_k[k] = []
 
 for f in F:
-    for k in K:
-        if f in FD_k[k]:
-            DA_k[f] = k
+    if f % 2 == 0:
+        FD_k[0].append(f)
+    else:
+        FD_k[1].append(f)
 
 DK_f = {}
 for f in F:
@@ -97,7 +103,11 @@ CO_p = {
     P.index(p): [
         P.index(pd)
         for pd in P
-        if pd != [] and DK_f[pd[0]] == DK_f[p[0]] and AK_f[pd[-1]] == AK_f[p[-1]]
+        if pd != []
+        and DK_f[pd[0]] == DK_f[p[0]]
+        and AK_f[pd[-1]] == AK_f[p[-1]]
+        and std[pd[0]] >= std[p[0]]
+        and sta[pd[-1]] >= sta[p[-1]]
     ]
     for p in P
     if p != []
@@ -106,17 +116,17 @@ CO_p = {
 # Data
 
 # Cost of operating flight f with tail t
-oc = {(t, f): 1500 for f in F for t in T}
+oc = {(t, f): 100 for f in F for t in T}
 
 # Delay cost per minute of arrival delay of flight f
 dc = {f: 100 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v, P.index(p)): 25 for p in P for v in Y}
+n = {(v, P.index(p)): 50 for p in P for v in Y}
 
 # Seating capacity of tail t in T
-q = {t: 100 for t in T}
+q = {0: 10, 1: 100}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
 rc = {
@@ -171,7 +181,7 @@ pc = {(z, P.index(p), P.index(pd)): 0 for z in Z for p in P for pd in P}
 
 # Per-flight schedule change penalty for not operating the flight using the originally
 # planned tail.
-kappa = 100
+kappa = 10000
 
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-x_hat = {(f, t): 1 if t == f or t + 1 == f else 0 for f in F for t in T}
+x_hat = {(0, 0): 1, (0, 1): 0, (1, 0): 1, (1, 1): 0}

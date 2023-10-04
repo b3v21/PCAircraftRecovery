@@ -15,7 +15,7 @@ graph = create_graph(flight_distribution)
 
 
 num_flights = graph.count_all_flights()
-num_tails = floor(graph.count_all_flights() / 2)  # This is somewhat arbitrary
+num_tails = 3  # This is somewhat arbitrary
 num_airports = 10
 num_fare_classes = 2  # This is somewhat arbitrary
 num_delay_levels = 2  # This is somewhat arbitrary
@@ -31,7 +31,7 @@ Z = range(num_delay_levels)
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
 
-itin_classes = {1: 5, 2: 1}
+itin_classes = {1: 4, 2: 1}
 
 try:
     P = generate_itineraries(graph, itin_classes)
@@ -120,7 +120,11 @@ CO_p = {
     P.index(p): [
         P.index(pd)
         for pd in P
-        if pd != [] and DK_f[pd[0]] == DK_f[p[0]] and AK_f[pd[-1]] == AK_f[p[-1]]
+        if pd != []
+        and DK_f[pd[0]] == DK_f[p[0]]
+        and AK_f[pd[-1]] == AK_f[p[-1]]
+        and std[pd[0]] >= std[p[0]]
+        and sta[pd[-1]] >= sta[p[-1]]
     ]
     for p in P
     if p != []
@@ -196,13 +200,13 @@ pc = {(z, P.index(p), P.index(pd)): 0 for z in Z for p in P for pd in P}
 kappa = 100
 
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-for node in graph.adj_list.keys():
-    for neigh, flight_id in graph.get_neighbours(node):
-        if flight_id != None:
-            x_hat = {(f, t): 1 if t == f else 0 for f in F for t in T}
+x_hat = {(f, t): 0 for t in T for f in F}
+x_hat[(6, 0)] = 1
+x_hat[(2, 1)]
+x_hat[(1, 2)]
 
 # Starting location of planes (binary)
 tb = {(t, k): 0 for t in T for k in K}
-tail_count = 0
-for flight, airport in DK_f.items():
-    tb[flight, airport] = 1
+tb[(0, "PER")] = 1
+tb[(1, "SYD")] = 1
+tb[(2, "SYD")] = 1

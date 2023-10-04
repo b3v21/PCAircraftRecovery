@@ -92,11 +92,7 @@ for f in F:
 # fd is compatible if it is scheduled to depart from the arrival airport of flight f
 # and the scheduled arrival of f is before the scheduled departure of fd
 CF_f = {
-    f: [
-        fd
-        for fd in F
-        if AK_f[f] == DK_f[fd] and sta[f] <= std[fd] and fd != f
-    ]
+    f: [fd for fd in F if AK_f[f] == DK_f[fd] and sta[f] <= std[fd] and fd != f]
     for f in F
 }
 
@@ -111,6 +107,8 @@ CO_p = {
         if pd != []
         and DK_f[pd[0]] == DK_f[p[0]]
         and AK_f[pd[-1]] == AK_f[p[-1]]
+        and std[pd[0]] >= std[p[0]]
+        and sta[pd[-1]] >= sta[p[-1]]
     ]
     for p in P
     if p != []

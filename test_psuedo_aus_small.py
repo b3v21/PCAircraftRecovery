@@ -211,20 +211,16 @@ def build_base_data() -> tuple:
     # Starting location of planes (binary)
     tb = {(t, k): 0 for t in T for k in K}
 
-    P_sorted = sorted(P, key=len, reverse=True)
-
+    P_sorted = sorted(P, key=(lambda x: std[x[0]] if x != [] else 0))
     tail_count = 0
-    for airport in K:
-        deperatures = FD_k[airport]
-        for deperature in deperatures:
-            for itin in P_sorted:
-                if (
-                    deperature in itin
-                    and itin.index(deperature) == 0
-                    and 1 not in [x_hat[(deperature, tail)] for tail in T]
-                ):
-                    tb[(tail_count, airport)] = 1
-                    tail_count += 1
+
+    for itin in P_sorted:
+        if itin:
+            airport = DK_f[itin[0]]
+            tb[(tail_count, airport)] = 1
+            tail_count += 1
+            if tail_count == num_tails:
+                break
 
     print("remaining data created")
 

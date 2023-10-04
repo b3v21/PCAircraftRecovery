@@ -22,6 +22,8 @@ except RecursionError:
 print("\nitineraries created")
 print(P, "\n")
 
+P.insert(0,[])
+
 print("Graph")
 for node, neigh in graph.adj_list.items():
     print(node, ": ", [n for n in neigh if n[1] is not None])
@@ -121,6 +123,13 @@ def build_base_data() -> tuple:
         for p in P
         if p != []
     }
+    
+    # Manually define the the compatibility of the empty itinerary
+    CO_p[0] = [0]
+    
+    # Manually add the empty itinerary as a compatible itinerary for each itinerary
+    for p in P:
+        CO_p[P.index(p)].append(0)
 
     # Cost of operating flight f with tail t
     oc = {(t, f): 10000 for t in T for f in F}
@@ -140,6 +149,9 @@ def build_base_data() -> tuple:
         for p in P
         for pd in P
     }
+    
+    for p in P:
+        rc[(P.index(p), 0)] = 1600
 
     # Phantom rate for passenger in fare class v reassigned from p to pd with delay level zeta
     phantom_rates = [0.1, 0.2, 0.3, 0.4, 0.5]
@@ -174,7 +186,7 @@ def build_base_data() -> tuple:
 
     # One if flight f is the last flight of itinerary p, and zero otherwise.
     lf = {
-        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1])
+        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1] if p != [] else 0)
         for p in P
         for f in F
     }

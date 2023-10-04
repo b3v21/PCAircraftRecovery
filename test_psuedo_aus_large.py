@@ -176,6 +176,9 @@ def build_base_data() -> tuple:
         for p in P
         for pd in P
     }
+    
+    for p in P:
+        rc[(P.index(p), 0)] = 1600
 
     # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
     # zeta

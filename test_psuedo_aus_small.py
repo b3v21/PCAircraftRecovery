@@ -415,7 +415,14 @@ def test_standard_solve():
         fc,
     )
 
+    _, z, _, _, _, _, _, lambd, _, _, _, _, _, _, _, _ = variables
+
+    # Obj the same, no flights cancelled and no itineraries disrupted
     assert round(standard_solve.objVal, 2) == round(original_obj_val, 2)
+    for f in F:
+        assert z[f].x < 0.9
+    for p in P:
+        assert lambd[P.index(p)].x < 0.9
 
 
 def test_reschedule_slot_cancel():
@@ -612,7 +619,33 @@ def test_reschedule_slot_cancel():
         fc,
     )
 
-    assert round(test_reschedule_slot_cancel.objVal, 2) == 1419000
+    _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
+
+    # Cancellations and reschedules occur as expected
+    for f in F:
+        if f == 2 or f == 6 or f == 10:
+            assert z[f].x > 0.9
+        else:
+            assert z[f].x < 0.9
+    for p in P:
+        if P.index(p) == 3 or P.index(p) == 7 or P.index(p) == 12:
+            assert lambd[P.index(p)].x > 0.9
+        else:
+            assert lambd[P.index(p)].x < 0.9
+    for p in P:
+        for pd in P:
+            if p != pd:
+                for v in Y:
+                    if any(
+                        [
+                            P.index(p) == 3 and P.index(pd) == 2,
+                            P.index(p) == 7 and P.index(pd) == 1,
+                            P.index(p) == 12 and P.index(pd) == 21,
+                        ]
+                    ):
+                        assert int(h[P.index(p), P.index(pd), v].x) == 50
+                    else:
+                        assert int(h[P.index(p), P.index(pd), v].x) == 0
 
 
 def test_reschedule_flight_cancel():
@@ -807,7 +840,26 @@ def test_reschedule_flight_cancel():
         fc,
     )
 
-    assert round(test_reschedule_flight_cancel.objVal, 2) == 1298000
+    _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
+
+    for f in F:
+        if f == 12:
+            assert z[f].x > 0.9
+        else:
+            assert z[f].x < 0.9
+    for p in P:
+        if P.index(p) == 16:
+            assert lambd[P.index(p)].x > 0.9
+        else:
+            assert lambd[P.index(p)].x < 0.9
+    for p in P:
+        for pd in P:
+            if p != pd:
+                for v in Y:
+                    if P.index(p) == 16 and P.index(pd) == 15:
+                        assert int(h[P.index(p), P.index(pd), v].x) == 50
+                    else:
+                        assert int(h[P.index(p), P.index(pd), v].x) == 0
 
 
 def test_reschedule_airport_shutdown():
@@ -1008,4 +1060,29 @@ def test_reschedule_airport_shutdown():
         fc,
     )
 
-    assert round(test_reschedule_airport_shutdown.objVal, 2) == 1956750
+    _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
+
+    for f in F:
+        if f == 0 or f == 6:
+            assert z[f].x > 0.9
+        else:
+            assert z[f].x < 0.9
+    for p in P:
+        if P.index(p) == 3 or P.index(p) == 11 or P.index(p) == 23:
+            assert lambd[P.index(p)].x > 0.9
+        else:
+            assert lambd[P.index(p)].x < 0.9
+    for p in P:
+        for pd in P:
+            if p != pd:
+                for v in Y:
+                    if any(
+                        [
+                            P.index(p) == 3 and P.index(pd) == 2,
+                            P.index(p) == 11 and P.index(pd) == 2,
+                            P.index(p) == 23 and P.index(pd) == 0,
+                        ]
+                    ):
+                        assert int(h[P.index(p), P.index(pd), v].x) == 50
+                    else:
+                        assert int(h[P.index(p), P.index(pd), v].x) == 0

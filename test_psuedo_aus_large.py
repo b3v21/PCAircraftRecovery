@@ -27,6 +27,7 @@ except RecursionError:
 print([p for p in P if len(p) > 1])
 print("itineraries created")
 
+
 def build_base_data() -> tuple:
     num_tails = 40  # This is somewhat arbitrary
     num_airports = 10

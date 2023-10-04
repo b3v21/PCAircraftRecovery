@@ -19,7 +19,7 @@ try:
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
-P.insert(0,[])
+P.insert(0, [])
 print("\nitineraries created")
 print(P, "\n")
 
@@ -124,10 +124,10 @@ def build_base_data() -> tuple:
         for p in P
         if p != []
     }
-    
+
     # Manually define the the compatibility of the empty itinerary
     CO_p[0] = [0]
-    
+
     # Manually add the empty itinerary as a compatible itinerary for each itinerary
     for p in P:
         CO_p[P.index(p)].append(0)
@@ -150,7 +150,7 @@ def build_base_data() -> tuple:
         for p in P
         for pd in P
     }
-    
+
     for p in P:
         rc[(P.index(p), 0)] = 1600
 

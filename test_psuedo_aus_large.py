@@ -6,7 +6,7 @@ import numpy as np
 from math import floor
 
 random.seed(59)
-graph_nodes = floor(random.normalvariate(40, 1))
+graph_nodes = floor(random.normalvariate(100, 1))
 flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
@@ -24,11 +24,13 @@ try:
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
+P.insert(0,[])
+
 print([p for p in P if len(p) > 1])
 print("itineraries created")
 
 def build_base_data() -> tuple:
-    num_tails = 40  # This is somewhat arbitrary
+    num_tails = 70  # This is somewhat arbitrary
     num_airports = 10
     num_fare_classes = 2  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
@@ -130,6 +132,13 @@ def build_base_data() -> tuple:
         for p in P
         if p != []
     }
+    
+    # Manually define the the compatibility of the empty itinerary
+    CO_p[0] = [0]
+    
+    # Manually add the empty itinerary as a compatible itinerary for each itinerary
+    for p in P:
+        CO_p[P.index(p)].append(0)
 
     # set of ordered flight pairs of consecutive flights in itinary p.
     CF_p = {P.index(p): [(p[i], p[i + 1]) for i, _ in enumerate(p[:-1])] for p in P}
@@ -140,7 +149,7 @@ def build_base_data() -> tuple:
 
     # One if flight f is the last flight of itinerary p, and zero otherwise.
     lf = {
-        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1])
+        (P.index(p), f): (lambda last: 1 if last == f else 0)(p[-1] if p != [] else 0)
         for p in P
         for f in F
     }
@@ -213,15 +222,16 @@ def build_base_data() -> tuple:
     # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
     x_hat = {(f, t): 0 for f in F for t in T}
 
-    P_sorted = sorted(P, key=(lambda x: std[x[0]]))
+    P_sorted = sorted(P, key=(lambda x: std[x[0]] if x != [] else 0))
     tail_count = 0
 
     for itin in P_sorted:
-        airport = DK_f[itin[0]]
-        tb[(tail_count, airport)] = 1
-        tail_count += 1
-        if tail_count == num_tails:
-            break
+        if itin:
+            airport = DK_f[itin[0]]
+            tb[(tail_count, airport)] = 1
+            tail_count += 1
+            if tail_count == num_tails:
+                break
 
     print("remaining data created")
 

@@ -67,6 +67,8 @@ def generate_variables(
     gamma = {f: m.addVar() for f in F}
 
     # Arrival delay of itinerary pd with respect to planned arrival time of itinerary p
+    import pdb; pdb.set_trace()
+    
     tao = {
         (P.index(p), pd): m.addVar(lb=-GRB.INFINITY)
         for p in P

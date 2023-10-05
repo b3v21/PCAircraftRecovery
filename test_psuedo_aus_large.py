@@ -154,9 +154,21 @@ def build_base_data() -> tuple:
         for p in P
         for f in F
     }
-    
-    tail_cap = {"Boeing 737-800": 174, "Boeing 787-9" : 236, "Airbus A380-800" : 485, "Airbus A330-300" : 297, "Airbus A330-200" : 271}
-    tail_amount = {"Boeing 737-800": 75, "Boeing 787-9" : 14, "Airbus A380-800" : 10, "Airbus A330-300" : 10, "Airbus A330-200" : 14}
+
+    tail_cap = {
+        "Boeing 737-800": 174,
+        "Boeing 787-9": 236,
+        "Airbus A380-800": 485,
+        "Airbus A330-300": 297,
+        "Airbus A330-200": 271,
+    }
+    tail_amount = {
+        "Boeing 737-800": 75,
+        "Boeing 787-9": 14,
+        "Airbus A380-800": 10,
+        "Airbus A330-300": 10,
+        "Airbus A330-200": 14,
+    }
 
     q = {}
     # Seating capacity of tail t in T

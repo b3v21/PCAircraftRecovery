@@ -4,7 +4,8 @@ import random
 import numpy as np
 from math import floor
 
-NEIGHBOUR_MAPS = []
+NEIGHBOUR_MAPS = {}
+
 
 # CODE TO GENERATE NEIGHBOUR MAP FOR EACH NODE.
 def generate_neighbour_map(graph, start) -> dict:
@@ -12,26 +13,27 @@ def generate_neighbour_map(graph, start) -> dict:
     Generates a map of all neighbours for each node in the graph.
     """
 
-    for neigh_map in NEIGHBOUR_MAPS:
-        if list(neigh_map.keys())[0][0] == start:
-            return neigh_map
-    
     flight_neighbours = [n for n in graph.get_neighbours(start) if n[1] is not None]
     neighbour_map = {}
     for neigh in flight_neighbours:
-        ground_neighbours = set()
-        for gn in [
-            n
-            for n in graph.get_outgoing_nodes(neigh[0].get_name())
-            if n.get_time() > neigh[0].get_time()
-        ]:
-            for gn2 in ground_neighbours:
-                if repr(gn) == repr(gn2):
-                    break
-            ground_neighbours.add(gn)
-        neighbour_map[neigh] = ground_neighbours
-    NEIGHBOUR_MAPS.append(neighbour_map)
+        if NEIGHBOUR_MAPS.get(neigh) is not None:
+            neighbour_map[neigh] = NEIGHBOUR_MAPS[neigh]
+            continue
+        else:
+            ground_neighbours = set()
+            for gn in [
+                n
+                for n in graph.get_outgoing_nodes(neigh[0].get_name())
+                if n.get_time() > neigh[0].get_time()
+            ]:
+                for gn2 in ground_neighbours:
+                    if repr(gn) == repr(gn2):
+                        break
+                ground_neighbours.add(gn)
+            neighbour_map[neigh] = ground_neighbours
+            NEIGHBOUR_MAPS[neigh] = ground_neighbours
     return neighbour_map
+
 
 def dfs_from_node(graph, start, all_paths, path=[]):
     neighbour_map = generate_neighbour_map(graph, start)

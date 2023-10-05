@@ -1,24 +1,33 @@
 from gurobipy import *
 from airline_recovery import *
 from data.build_psuedo_aus import *
-from algorithms import generate_all_paths
 import random
 import numpy as np
 from math import floor
 
-random.seed(69)
-graph_nodes = floor(random.normalvariate(123, 10))
+random.seed(59)
+graph_nodes = floor(random.normalvariate(1000, 100))
 flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
 num_flights = graph.count_all_flights()
 print("graph created")
 
+# This represents the different types of itineraries which will be generated
+singles = []
+for p in range(num_flights):
+    singles.append([p])
+
+itin_classes = {}
 try:
-    P = generate_all_paths(graph)
+    P = generate_itineraries(graph, itin_classes, singles)
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-print("\nitineraries created")
+
+P.insert(0, [])
+
+print([p for p in P if len(p) > 1])
+print("itineraries created")
 
 
 def build_base_data() -> tuple:
@@ -48,8 +57,8 @@ def build_base_data() -> tuple:
                 sta[flight_id] = neigh.time
 
     # Construct arrival and departure slots
-    DA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
-    AA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
+    DA = [(float(t), float(t + 0.5)) for t in np.arange(0, TIME_HORIZON, 0.5)]
+    AA = [(float(t), float(t + 0.5)) for t in np.arange(0, TIME_HORIZON, 0.5)]
 
     # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
     AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
@@ -60,8 +69,8 @@ def build_base_data() -> tuple:
     FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
     # Capacity of arrival and departure slots
-    scA = {asl: 10 for asl in AA}
-    scD = {dsl: 10 for dsl in DA}
+    scA = {asl: 20 for asl in AA}
+    scD = {dsl: 20 for dsl in DA}
 
     print("slot data created")
 
@@ -145,21 +154,9 @@ def build_base_data() -> tuple:
         for p in P
         for f in F
     }
-
-    tail_cap = {
-        "Boeing 737-800": 174,
-        "Boeing 787-9": 236,
-        "Airbus A380-800": 485,
-        "Airbus A330-300": 297,
-        "Airbus A330-200": 271,
-    }
-    tail_amount = {
-        "Boeing 737-800": 75,
-        "Boeing 787-9": 14,
-        "Airbus A380-800": 10,
-        "Airbus A330-300": 10,
-        "Airbus A330-200": 14,
-    }
+    
+    tail_cap = {"Boeing 737-800": 174, "Boeing 787-9" : 236, "Airbus A380-800" : 485, "Airbus A330-300" : 297, "Airbus A330-200" : 271}
+    tail_amount = {"Boeing 737-800": 75, "Boeing 787-9" : 14, "Airbus A380-800" : 10, "Airbus A330-300" : 10, "Airbus A330-200" : 14}
 
     q = {}
     # Seating capacity of tail t in T
@@ -180,26 +177,7 @@ def build_base_data() -> tuple:
 
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
-    itin_classes = {1: num_flights, 2: 20, 3: 5}
-
-    # Number of passengers in fare class v that are originally scheduled to take itinerary p
-    n = {(v, P.index(p)): 0 for v in Y for p in P}
-
-    P_copy = deepcopy(P)
-    itins_to_make = sum(list(itin_classes.values()))
-
-    for _ in range(itins_to_make):
-        itin = random.choice(P_copy)
-        while (
-            len(itin) not in list(itin_classes.keys())
-            or itin_classes.get(len(itin), 0) == 0
-        ):
-            itin = random.choice(P_copy)
-        print(itin)
-        for v in Y:
-            n[(v, P_copy.index(itin))] = 50
-        P_copy.remove(itin)
-        itin_classes[len(itin)] -= 1
+    n = {(v, P.index(p)): 50 for v in Y for p in P}
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
     rc = {
@@ -316,8 +294,8 @@ def build_base_data() -> tuple:
     )
 
 
-def test_psuedo_aus_medium_size():
-    m = Model("airline recovery aus medium")
+def test_psuedo_aus_large_size():
+    m = Model("airline recovery aus large")
 
     (
         T,

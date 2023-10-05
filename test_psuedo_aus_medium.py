@@ -20,7 +20,6 @@ except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 print("\nitineraries created")
 
-
 def build_base_data() -> tuple:
     num_tails = 123  # This is somewhat arbitrary
     num_airports = 10

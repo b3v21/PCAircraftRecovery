@@ -4,12 +4,18 @@ import random
 import numpy as np
 from math import floor
 
+NEIGHBOUR_MAPS = []
 
 # CODE TO GENERATE NEIGHBOUR MAP FOR EACH NODE.
 def generate_neighbour_map(graph, start) -> dict:
     """
     Generates a map of all neighbours for each node in the graph.
     """
+
+    for neigh_map in NEIGHBOUR_MAPS:
+        if list(neigh_map.keys())[0][0] == start:
+            return neigh_map
+    
     flight_neighbours = [n for n in graph.get_neighbours(start) if n[1] is not None]
     neighbour_map = {}
     for neigh in flight_neighbours:
@@ -24,8 +30,8 @@ def generate_neighbour_map(graph, start) -> dict:
                     break
             ground_neighbours.add(gn)
         neighbour_map[neigh] = ground_neighbours
+    NEIGHBOUR_MAPS.append(neighbour_map)
     return neighbour_map
-
 
 def dfs_from_node(graph, start, all_paths, path=[]):
     neighbour_map = generate_neighbour_map(graph, start)
@@ -52,5 +58,6 @@ def generate_all_paths(graph, all_paths=[]):
     """
 
     for start in graph.adj_list.keys():
+        print(start)
         all_paths = dfs_from_node(graph, start, all_paths)
     return sorted(all_paths + [[]], key=len)

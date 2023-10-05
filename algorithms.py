@@ -39,7 +39,6 @@ def dfs_from_node(graph, start, all_paths, path=[]):
     for neigh in neighbour_map.keys():
         if neighbour_map[neigh] != set():
             for gn in neighbour_map[neigh]:
-                print(gn)
                 new_path = deepcopy(path) + [neigh[1]]
                 if new_path not in all_paths:
                     all_paths.append(new_path)

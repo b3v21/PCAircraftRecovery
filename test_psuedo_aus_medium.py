@@ -1,6 +1,7 @@
 from gurobipy import *
 from airline_recovery import *
 from data.build_psuedo_aus import *
+from algorithms import generate_all_paths
 import random
 import numpy as np
 from math import floor
@@ -13,21 +14,11 @@ graph = create_graph(flight_distribution)
 num_flights = graph.count_all_flights()
 print("graph created")
 
-# This represents the different types of itineraries which will be generated
-singles = []
-for p in range(num_flights):
-    singles.append([p])
-
-itin_classes = {}
 try:
-    P = generate_itineraries(graph, itin_classes, singles)
+    P = generate_all_paths(graph)
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-
-P.insert(0, [])
-
-print([p for p in P if len(p) > 1])
-print("itineraries created")
+print("\nitineraries created")
 
 
 def build_base_data() -> tuple:
@@ -154,10 +145,21 @@ def build_base_data() -> tuple:
         for p in P
         for f in F
     }
-    
-    
-    tail_cap = {"Boeing 737-800": 174, "Boeing 787-9" : 236, "Airbus A380-800" : 485, "Airbus A330-300" : 297, "Airbus A330-200" : 271}
-    tail_amount = {"Boeing 737-800": 75, "Boeing 787-9" : 14, "Airbus A380-800" : 10, "Airbus A330-300" : 10, "Airbus A330-200" : 14}
+
+    tail_cap = {
+        "Boeing 737-800": 174,
+        "Boeing 787-9": 236,
+        "Airbus A380-800": 485,
+        "Airbus A330-300": 297,
+        "Airbus A330-200": 271,
+    }
+    tail_amount = {
+        "Boeing 737-800": 75,
+        "Boeing 787-9": 14,
+        "Airbus A380-800": 10,
+        "Airbus A330-300": 10,
+        "Airbus A330-200": 14,
+    }
 
     q = {}
     # Seating capacity of tail t in T
@@ -178,7 +180,26 @@ def build_base_data() -> tuple:
 
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
-    n = {(v, P.index(p)): 50 for v in Y for p in P}
+    itin_classes = {1: num_flights, 2: 20, 3: 5}
+
+    # Number of passengers in fare class v that are originally scheduled to take itinerary p
+    n = {(v, P.index(p)): 0 for v in Y for p in P}
+
+    P_copy = deepcopy(P)
+    itins_to_make = sum(list(itin_classes.values()))
+
+    for _ in range(itins_to_make):
+        itin = random.choice(P_copy)
+        while (
+            len(itin) not in list(itin_classes.keys())
+            or itin_classes.get(len(itin), 0) == 0
+        ):
+            itin = random.choice(P_copy)
+        print(itin)
+        for v in Y:
+            n[(v, P_copy.index(itin))] = 50
+        P_copy.remove(itin)
+        itin_classes[len(itin)] -= 1
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
     rc = {

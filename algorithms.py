@@ -4,19 +4,6 @@ import random
 import numpy as np
 from math import floor
 
-random.seed(59)
-
-num_flights = floor(random.normalvariate(20, 1))
-flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
-graph = create_graph(flight_distribution)
-print("graph created")
-
-print("Graph")
-for node, neigh in graph.adj_list.items():
-    if len([n for n in neigh if n[1] is not None]) > 0:
-        print(node, ": ", [n for n in neigh if n[1] is not None])
-print()
-
 
 # CODE TO GENERATE NEIGHBOUR MAP FOR EACH NODE.
 def generate_neighbour_map(graph, start) -> dict:
@@ -44,14 +31,11 @@ def dfs_from_node(graph, start, all_paths, path=[]):
     neighbour_map = generate_neighbour_map(graph, start)
 
     if sum([neighbour_map[neigh] == set() for neigh in neighbour_map.keys()]):
-        print("BASE CASE", neighbour_map)
-        # if path not in all_paths:
         for neigh in neighbour_map.keys():
             new_path = deepcopy(path) + [neigh[1]]
             if new_path not in all_paths:
                 all_paths.append(new_path)
 
-    print("RECURSE", neighbour_map)
     for neigh in neighbour_map.keys():
         if neighbour_map[neigh] != set():
             for gn in neighbour_map[neigh]:

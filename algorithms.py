@@ -59,7 +59,7 @@ def generate_all_paths(graph, all_paths=[]):
     Driver function to generate all paths in the graph starting at each node in the graph.
     """
 
-    for start in graph.adj_list.keys():
-        print(start)
+    sorted_graph = sorted(list(set(graph.get_all_nodes())), key=lambda x: x.get_time(), reverse=True)
+    for start in sorted_graph:
         all_paths = dfs_from_node(graph, start, all_paths)
     return sorted(all_paths + [[]], key=len)

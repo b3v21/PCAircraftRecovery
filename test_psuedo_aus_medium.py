@@ -6,7 +6,7 @@ import numpy as np
 from math import floor
 
 random.seed(59)
-graph_nodes = floor(random.normalvariate(100, 1))
+graph_nodes = floor(random.normalvariate(125, 1))
 flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
@@ -31,7 +31,7 @@ print("itineraries created")
 
 
 def build_base_data() -> tuple:
-    num_tails = 70  # This is somewhat arbitrary
+    num_tails = 123  # This is somewhat arbitrary
     num_airports = 10
     num_fare_classes = 2  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
@@ -154,6 +154,19 @@ def build_base_data() -> tuple:
         for p in P
         for f in F
     }
+    
+    
+    tail_cap = {"Boeing 737-800": 174, "Boeing 787-9" : 236, "Airbus A380-800" : 485, "Airbus A330-300" : 297, "Airbus A330-200" : 271}
+    tail_amount = {"Boeing 737-800": 75, "Boeing 787-9" : 14, "Airbus A380-800" : 10, "Airbus A330-300" : 10, "Airbus A330-200" : 14}
+
+    q = {}
+    # Seating capacity of tail t in T
+    for t in T:
+        tail = random.choice(list(tail_cap.keys()))
+        while tail_amount[tail] <= 0:
+            tail = random.choice(list(tail_cap.keys()))
+        tail_amount[tail] -= 1
+        q[t] = tail_cap[tail]
 
     print("itinerary and flight data created")
 
@@ -166,9 +179,6 @@ def build_base_data() -> tuple:
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
     n = {(v, P.index(p)): 50 for v in Y for p in P}
-
-    # Seating capacity of tail t in T
-    q = {t: 250 for t in T}
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
     rc = {

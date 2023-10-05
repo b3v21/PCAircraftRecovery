@@ -70,9 +70,4 @@ def generate_all_paths(graph, all_paths=[]):
 
     for start in graph.adj_list.keys():
         all_paths = dfs_from_node(graph, start, all_paths)
-    return all_paths
-
-
-if __name__ == "__main__":
-    all_paths = sorted(generate_all_paths(graph), key=len)
-    print("\n", all_paths)
+    return sorted(all_paths + [[]], key=len)

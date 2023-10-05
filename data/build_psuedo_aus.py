@@ -83,12 +83,13 @@ WEIGHTS = [0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
 
 
 class Node:
-    def __init__(self, node_id, name, lat, long, time):
+    def __init__(self, node_id, name, lat, long, time, outgoing=True):
         self.id = node_id
         self.name = name
         self.lat = lat
         self.long = long
         self.time = time
+        self.outgoing = outgoing
 
     def __repr__(self):
         return f"{self.name}: {self.time}"
@@ -109,10 +110,11 @@ class Node:
     def get_name(self):
         return self.name
 
-    def new_time_copy(self, time, node_id):
+    def new_time_copy(self, time, node_id, outgoing=False):
         new_node = copy.deepcopy(self)
         new_node.time = time
         new_node.id = node_id
+        new_node.outgoing = outgoing
         return new_node
 
     def get_time(self):
@@ -130,7 +132,7 @@ class AdjanecyList:
 
     def get_nodes(self, name):
         result = []
-        for node in self.adj_list:
+        for node in self.adj_list.keys():
             if node.name == name:
                 result.append(node)
         return result
@@ -148,6 +150,18 @@ class AdjanecyList:
         return list(self.adj_list.keys()) + sum(
             [[t[0] for t in L] for L in self.adj_list.values()], []
         )
+
+    def get_outgoing_nodes(self, name=None) -> list[Node]:
+        nodes = self.get_all_nodes()
+        unique_nodes = list(set(nodes))
+
+        if name:
+            return [
+                node
+                for node in unique_nodes
+                if node.outgoing and node.get_name() == name
+            ]
+        return [node for node in unique_nodes if node.outgoing]
 
     def count_node_locations(self):
         counts = {k: 0 for k in AIRPORTS}
@@ -196,7 +210,7 @@ def generate_flight_arc(
     departure_time = round(random.random() * TIME_HORIZON - ceil(flight_time), 1)
     while departure_time < 0:
         departure_time = round(random.random() * TIME_HORIZON - ceil(flight_time), 1)
-    departure_node = node.new_time_copy(departure_time, current_node_id)
+    departure_node = node.new_time_copy(departure_time, current_node_id, outgoing=True)
 
     # if departure_node in graph.adj_list:
     graph.add_neigh_to_node(

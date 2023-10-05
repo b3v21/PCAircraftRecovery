@@ -4,7 +4,6 @@ from data.build_psuedo_aus import *
 import random
 import numpy as np
 from math import floor
-from algorithms import dfs_all_paths
 
 random.seed(59)
 
@@ -30,8 +29,6 @@ for node, neigh in graph.adj_list.items():
     if len([n for n in neigh if n[1] is not None]) > 0:
         print(node, ": ", [n for n in neigh if n[1] is not None])
 print()
-
-print(dfs_all_paths(graph, graph.get_all_nodes()[9]))
 
 
 def build_base_data() -> tuple:

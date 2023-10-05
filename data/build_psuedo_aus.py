@@ -83,7 +83,7 @@ WEIGHTS = [0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
 
 
 class Node:
-    def __init__(self, node_id, name, lat, long, time, outgoing = True):
+    def __init__(self, node_id, name, lat, long, time, outgoing=True):
         self.id = node_id
         self.name = name
         self.lat = lat
@@ -110,7 +110,7 @@ class Node:
     def get_name(self):
         return self.name
 
-    def new_time_copy(self, time, node_id, outgoing = False):
+    def new_time_copy(self, time, node_id, outgoing=False):
         new_node = copy.deepcopy(self)
         new_node.time = time
         new_node.id = node_id
@@ -119,7 +119,6 @@ class Node:
 
     def get_time(self):
         return self.time
-        
 
 
 class AdjanecyList:
@@ -151,14 +150,17 @@ class AdjanecyList:
         return list(self.adj_list.keys()) + sum(
             [[t[0] for t in L] for L in self.adj_list.values()], []
         )
-        
-    def get_outgoing_nodes(self, name = None) -> list[Node]:
 
+    def get_outgoing_nodes(self, name=None) -> list[Node]:
         nodes = self.get_all_nodes()
         unique_nodes = list(set(nodes))
-        
+
         if name:
-            return [node for node in unique_nodes if node.outgoing and node.get_name() == name]
+            return [
+                node
+                for node in unique_nodes
+                if node.outgoing and node.get_name() == name
+            ]
         return [node for node in unique_nodes if node.outgoing]
 
     def count_node_locations(self):
@@ -208,7 +210,7 @@ def generate_flight_arc(
     departure_time = round(random.random() * TIME_HORIZON - ceil(flight_time), 1)
     while departure_time < 0:
         departure_time = round(random.random() * TIME_HORIZON - ceil(flight_time), 1)
-    departure_node = node.new_time_copy(departure_time, current_node_id, outgoing = True)
+    departure_node = node.new_time_copy(departure_time, current_node_id, outgoing=True)
 
     # if departure_node in graph.adj_list:
     graph.add_neigh_to_node(

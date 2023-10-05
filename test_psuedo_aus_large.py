@@ -6,7 +6,7 @@ import numpy as np
 from math import floor
 
 random.seed(59)
-graph_nodes = floor(random.normalvariate(125, 1))
+graph_nodes = floor(random.normalvariate(1000, 100))
 flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
@@ -57,8 +57,8 @@ def build_base_data() -> tuple:
                 sta[flight_id] = neigh.time
 
     # Construct arrival and departure slots
-    DA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
-    AA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
+    DA = [(float(t), float(t + 0.5)) for t in np.arange(0, TIME_HORIZON, 0.5)]
+    AA = [(float(t), float(t + 0.5)) for t in np.arange(0, TIME_HORIZON, 0.5)]
 
     # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
     AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
@@ -69,8 +69,8 @@ def build_base_data() -> tuple:
     FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
     # Capacity of arrival and departure slots
-    scA = {asl: 10 for asl in AA}
-    scD = {dsl: 10 for dsl in DA}
+    scA = {asl: 20 for asl in AA}
+    scD = {dsl: 20 for dsl in DA}
 
     print("slot data created")
 
@@ -294,8 +294,8 @@ def build_base_data() -> tuple:
     )
 
 
-def test_psuedo_aus_medium_size():
-    m = Model("airline recovery aus medium")
+def test_psuedo_aus_large_size():
+    m = Model("airline recovery aus large")
 
     (
         T,
@@ -361,6 +361,7 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing to get xhat...")
     m.setParam("OutputFlag", 1)
+    m.setParam("MIPGap", 0.1)
     m.optimize()
 
     x_hat = generate_x_hat(m, variables, F, T)
@@ -386,6 +387,7 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
+    m.setParam("MIPGap", 0.1)
     m.optimize()
 
     print("generating output...")

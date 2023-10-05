@@ -5,7 +5,7 @@ import random
 import numpy as np
 from math import floor
 
-random.seed(59)
+random.seed(69)
 graph_nodes = floor(random.normalvariate(123, 10))
 flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 

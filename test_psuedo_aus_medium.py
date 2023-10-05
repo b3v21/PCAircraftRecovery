@@ -6,7 +6,7 @@ import numpy as np
 from math import floor
 
 random.seed(59)
-graph_nodes = floor(random.normalvariate(125, 1))
+graph_nodes = floor(random.normalvariate(123, 10))
 flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
 graph = create_graph(flight_distribution)
@@ -361,6 +361,7 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing to get xhat...")
     m.setParam("OutputFlag", 1)
+    m.setParam("MIPGap", 0.1)
     m.optimize()
 
     x_hat = generate_x_hat(m, variables, F, T)
@@ -386,6 +387,7 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
+    m.setParam("MIPGap", 0.1)
     m.optimize()
 
     print("generating output...")

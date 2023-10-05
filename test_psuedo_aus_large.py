@@ -4,30 +4,9 @@ from data.build_psuedo_aus import *
 import random
 import numpy as np
 from math import floor
+import pytest
 
-random.seed(59)
-graph_nodes = floor(random.normalvariate(1000, 100))
-flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
-
-graph = create_graph(flight_distribution)
-num_flights = graph.count_all_flights()
-print("graph created")
-
-# This represents the different types of itineraries which will be generated
-singles = []
-for p in range(num_flights):
-    singles.append([p])
-
-itin_classes = {}
-try:
-    P = generate_itineraries(graph, itin_classes, singles)
-except RecursionError:
-    print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-
-P.insert(0, [])
-
-print([p for p in P if len(p) > 1])
-print("itineraries created")
+longrun = pytest.mark.skipif("not config.getoption('longrun')")
 
 
 def build_base_data() -> tuple:
@@ -306,7 +285,32 @@ def build_base_data() -> tuple:
     )
 
 
+@longrun
 def test_psuedo_aus_large_size():
+    random.seed(59)
+    graph_nodes = floor(random.normalvariate(1000, 100))
+    flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
+
+    graph = create_graph(flight_distribution)
+    num_flights = graph.count_all_flights()
+    print("graph created")
+
+    # This represents the different types of itineraries which will be generated
+    singles = []
+    for p in range(num_flights):
+        singles.append([p])
+
+    itin_classes = {}
+    try:
+        P = generate_itineraries(graph, itin_classes, singles)
+    except RecursionError:
+        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+
+    P.insert(0, [])
+
+    print([p for p in P if len(p) > 1])
+    print("itineraries created")
+
     m = Model("airline recovery aus large")
 
     (

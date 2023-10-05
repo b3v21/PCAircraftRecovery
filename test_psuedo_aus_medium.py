@@ -5,20 +5,11 @@ from algorithms import generate_all_paths
 import random
 import numpy as np
 from math import floor
+import pytest
+
+longrun = pytest.mark.skipif("not config.getoption('longrun')")
 
 random.seed(69)
-graph_nodes = floor(random.normalvariate(123, 10))
-flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
-
-graph = create_graph(flight_distribution)
-num_flights = graph.count_all_flights()
-print("graph created")
-
-try:
-    P = generate_all_paths(graph)
-except RecursionError:
-    print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-print("\nitineraries created")
 
 
 def build_base_data() -> tuple:
@@ -316,7 +307,21 @@ def build_base_data() -> tuple:
     )
 
 
+@longrun
 def test_psuedo_aus_medium_size():
+    graph_nodes = floor(random.normalvariate(123, 10))
+    flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
+
+    graph = create_graph(flight_distribution)
+    num_flights = graph.count_all_flights()
+    print("graph created")
+
+    try:
+        P = generate_all_paths(graph)
+    except RecursionError:
+        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+    print("\nitineraries created")
+
     m = Model("airline recovery aus medium")
 
     (

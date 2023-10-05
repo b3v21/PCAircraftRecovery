@@ -665,8 +665,6 @@ def generate_output(
     for p in P:
         if lambd[P.index(p)].x > 0.9:
             disrupted_itins = True
-            print(f"I{P.index(p)} disrupted:")
-
             for pd in P:
                 for v in Y:
                     if p != pd:
@@ -678,7 +676,7 @@ def generate_output(
     if not disrupted_itins:
         print("No Itineraries Disrupted")
 
-    print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
+    print(f"Total Disrupted Passengers: {disrupted_passengers}")
 
     print("\nFlight Delays:")
     for f in F:

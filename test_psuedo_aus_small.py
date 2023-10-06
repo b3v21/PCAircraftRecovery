@@ -145,11 +145,20 @@ def build_base_data() -> tuple:
     q = {t: 250 for t in T}
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
-    rc = {
-        (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 800)(p, pd)
-        for p in P
-        for pd in P
-    }
+    rc_costs = {time : 100 for time in range(0, 4)}
+    for time in range (3,7):
+        rc_costs[time] = 400
+    for time in range (6, 17):
+        rc_costs[time] = 600
+    for time in range (16, 72):
+        rc_costs[time] = 1000
+    
+    rc = {}
+    for p in P:
+        for pd in P:
+            if p != [] and pd != [] and std[pd[0]] >= std[p[0]]:
+                time_diff = math.floor(std[pd[0]] - std[p[0]])
+                rc[(P.index(p), P.index(pd))] = rc_costs[time_diff]
 
     for p in P:
         rc[(P.index(p), 0)] = 1600
@@ -202,7 +211,7 @@ def build_base_data() -> tuple:
     # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
     # the passenger’s destination arrival delay via itinerary p′ compared with the planned
     # arrival time of itinerary p corresponds to delay level ζ
-    pc = {(z, P.index(p), P.index(pd)): 250 for z in Z for p in P for pd in P}
+    pc = {(z, P.index(p), P.index(pd)): 200 + z * 150 for z in Z for p in P for pd in P}
 
     # Initial unbounded, first solve will handle.
     kappa = 0
@@ -623,12 +632,12 @@ def test_reschedule_slot_cancel():
 
     # Cancellations and reschedules occur as expected
     for f in F:
-        if f == 2 or f == 6 or f == 10:
+        if f == 6 or f == 10:
             assert z[f].x > 0.9
         else:
             assert z[f].x < 0.9
     for p in P:
-        if P.index(p) == 3 or P.index(p) == 7 or P.index(p) == 12:
+        if P.index(p) == 3 or P.index(p) == 7:
             assert lambd[P.index(p)].x > 0.9
         else:
             assert lambd[P.index(p)].x < 0.9
@@ -640,7 +649,6 @@ def test_reschedule_slot_cancel():
                         [
                             P.index(p) == 3 and P.index(pd) == 2,
                             P.index(p) == 7 and P.index(pd) == 1,
-                            P.index(p) == 12 and P.index(pd) == 21,
                         ]
                     ):
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
@@ -859,7 +867,7 @@ def test_reschedule_flight_cancel():
                     if P.index(p) == 16 and P.index(pd) == 15:
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
                     else:
-                        assert int(h[P.index(p), P.index(pd), v].x) == 0
+                        assert int(h[P.index(p), P.index(pd), v].x) == 0 or int(h[P.index(p), P.index(pd), v].x) == 40
 
 
 def test_reschedule_airport_shutdown():
@@ -1063,12 +1071,12 @@ def test_reschedule_airport_shutdown():
     _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
 
     for f in F:
-        if f == 0 or f == 6:
+        if f == 0 or f == 6 or f ==10:
             assert z[f].x > 0.9
         else:
             assert z[f].x < 0.9
     for p in P:
-        if P.index(p) == 3 or P.index(p) == 11 or P.index(p) == 23:
+        if P.index(p) == 3 or P.index(p) == 11 or P.index(p) == 23 or P.index(p) == 7:
             assert lambd[P.index(p)].x > 0.9
         else:
             assert lambd[P.index(p)].x < 0.9
@@ -1079,6 +1087,7 @@ def test_reschedule_airport_shutdown():
                     if any(
                         [
                             P.index(p) == 3 and P.index(pd) == 2,
+                            P.index(p) == 7 and P.index(pd) == 1,
                             P.index(p) == 11 and P.index(pd) == 2,
                             P.index(p) == 23 and P.index(pd) == 0,
                         ]

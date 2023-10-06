@@ -171,14 +171,23 @@ def build_base_data() -> tuple:
     n = {(v, P.index(p)): 50 for v in Y for p in P}
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
-    rc = {
-        (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 600)(p, pd)
-        for p in P
-        for pd in P
-    }
+    rc_costs = {time : 100 for time in range(0, 4)}
+    for time in range (3,7):
+        rc_costs[time] = 400
+    for time in range (6, 17):
+        rc_costs[time] = 600
+    for time in range (16, 72):
+        rc_costs[time] = 1000
+    
+    rc = {}
+    for p in P:
+        for pd in P:
+            if p != [] and pd != [] and std[pd[0]] >= std[p[0]]:
+                time_diff = math.floor(std[pd[0]] - std[p[0]])
+                rc[(P.index(p), P.index(pd))] = rc_costs[time_diff]
 
     for p in P:
-        rc[(P.index(p), 0)] = 1500
+        rc[(P.index(p), 0)] = 1600
 
     # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
     # zeta

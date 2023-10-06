@@ -660,7 +660,6 @@ def generate_output(
         print("No Flights Cancelled")
 
     disrupted_itins = False
-    disrupted_passengers = 0
     print("\nDisrupted Itineraries:")
     for p in P:
         if lambd[P.index(p)].x > 0.9:
@@ -672,9 +671,16 @@ def generate_output(
                             print(
                                 f"    I{P.index(p)} {*P[P.index(p)],} -> I{P.index(pd)} {*P[P.index(pd)],} (FC: {v}) people reassigned: {int(h[P.index(p), P.index(pd), v].x)}"
                             )
-                            disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
     if not disrupted_itins:
         print("No Itineraries Disrupted")
+
+    disrupted_passengers = 0
+    for p in P:
+        for pd in P:
+            if p != pd:
+                for v in Y:
+                    disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
+                
 
     print(f"Total Disrupted Passengers: {disrupted_passengers}")
 

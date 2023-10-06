@@ -120,7 +120,7 @@ AK_f = {0: 1, 1: 3, 2: 2, 3: 4, 4: 4}
 FD_k = {0: [0], 1: [1, 2], 2: [4], 3: [3], 4: []}
 
 # Airport that flight f departs from (this isn't actually data in the paper)
-DK_f = {0:0, 1:1, 2:1, 3:3, 4:2} 
+DK_f = {0: 0, 1: 1, 2: 1, 3: 3, 4: 2}
 
 departure_airport_of_f = {}
 for f in F:
@@ -148,18 +148,18 @@ CF_f = {
 # same start and end destination
 
 CO_p = {
-        P.index(p): [
-            P.index(pd)
-            for pd in P
-            if pd != []
-            and DK_f[pd[0]] == DK_f[p[0]]
-            and AK_f[pd[-1]] == AK_f[p[-1]]
-            and std[pd[0]] >= std[p[0]]
-            and sta[pd[-1]] >= sta[p[-1]]
-        ]
-        for p in P
-        if p != []
-    }
+    P.index(p): [
+        P.index(pd)
+        for pd in P
+        if pd != []
+        and DK_f[pd[0]] == DK_f[p[0]]
+        and AK_f[pd[-1]] == AK_f[p[-1]]
+        and std[pd[0]] >= std[p[0]]
+        and sta[pd[-1]] >= sta[p[-1]]
+    ]
+    for p in P
+    if p != []
+}
 
 
 ########
@@ -167,46 +167,56 @@ CO_p = {
 ########
 
 # Cost of operating flight f with tail t
-oc = {(t,f): 500 for f in F for t in T}
+oc = {(t, f): 500 for f in F for t in T}
 
 # Delay cost per minute of arrival delay of flight f
 dc = {f: 100 for f in F}
 
 # Number of passengers in fare class v that are originally scheduled to
 # take itinerary p
-n = {(v,P.index(p)): 25 for v in Y for p in P}
+n = {(v, P.index(p)): 25 for v in Y for p in P}
 
 # Seating capacity of tail t in T
 q = {t: 250 for t in T}
 
 # Reaccommodation Cost for a passenger reassigned from p to pd.
-rc = { (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 0.5)(p, pd) for p in P for pd in P}
+rc = {
+    (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 0.5)(p, pd)
+    for p in P
+    for pd in P
+}
 
-alpha_regr = {0:0, 1:0, 2:0, 3:0.290, 4:0.473}
+alpha_regr = {0: 0, 1: 0, 2: 0, 3: 0.290, 4: 0.473}
 
-beta_regr = {0:0, 1:0, 2:0, 3:-0.016, 4:-0.028}
+beta_regr = {0: 0, 1: 0, 2: 0, 3: -0.016, 4: -0.028}
 
 # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
 # zeta
-theta = {(v,P.index(p_to),P.index(p_from),z): alpha_regr[z] + beta_regr[z]*v for z in Z for p_from in P for p_to in P for v in Y}
-#print(theta)
+theta = {
+    (v, P.index(p_to), P.index(p_from), z): alpha_regr[z] + beta_regr[z] * v
+    for z in Z
+    for p_from in P
+    for p_to in P
+    for v in Y
+}
+# print(theta)
 
 # Starting location of planes (binary) ((for t) for k)
-#t0 = [1, 0, 0, 0, 0]
-#t1 = [0, 1, 0, 0, 0]
-#t2 = [0, 1, 0, 0, 0]
-#t3 = [0, 0, 0, 1, 0]
-#t4 = [0, 0, 1, 0, 0]
+# t0 = [1, 0, 0, 0, 0]
+# t1 = [0, 1, 0, 0, 0]
+# t2 = [0, 1, 0, 0, 0]
+# t3 = [0, 0, 0, 1, 0]
+# t4 = [0, 0, 1, 0, 0]
 
-#tb = {0:t0, 1:t1, 2:t2, 3:t3, 4:t4}
+# tb = {0:t0, 1:t1, 2:t2, 3:t3, 4:t4}
 
 tb = {(t, k): 0 for t in T for k in K}
-tb[(0,0)] = 1
-tb[(1,1)] = 1
-tb[(2,1)] = 1
-tb[(3,3)] = 1
-tb[(4,2)] = 1
-#print(tb)
+tb[(0, 0)] = 1
+tb[(1, 1)] = 1
+tb[(2, 1)] = 1
+tb[(3, 3)] = 1
+tb[(4, 2)] = 1
+# print(tb)
 
 # Capacity of arrival and departure slots
 scA = {asl: 10 for asl in AA}
@@ -216,25 +226,25 @@ scD = {asl: 10 for asl in DA}
 sb = {f: 0 for f in F}
 
 # minimum turn time between flight f and fd with tail t
-mtt = {(t,f,fd): 0 for t in T for fd in F for f in F}
+mtt = {(t, f, fd): 0 for t in T for fd in F for f in F}
 
 # minimum connection time between flight f and fd in itinerary p
-mct = {(P.index(p),f,fd): 0 for p in P for fd in F for f in F}
+mct = {(P.index(p), f, fd): 0 for p in P for fd in F for f in F}
 
 # Planned connection time between flights f and fd. It equals scheduled departure time of
 # flight fd minus the scheduled arrival time of flight f.
-ct = {(f,fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
+ct = {(f, fd): max(0, std[fd] - sta[f]) for fd in F for f in F}
 
 # set of ordered flight pairs of consecutive flights in itinary p.
 CF_p = {0: [(0, 1), (1, 3)], 1: [(0, 2), (2, 4)]}
 
 # One if flight f is the last flight of itinerary p, and zero otherwise.
-lf = {(P.index(p),f): 0 for p in P for f in F}
-lf[0,3]=1
-lf[1,4]=1
+lf = {(P.index(p), f): 0 for p in P for f in F}
+lf[0, 3] = 1
+lf[1, 4] = 1
 
 # Upper bound on the delay, expressed in minutes, corresponding to delay level ζ.
-small_theta = {0:59, 1:119, 2:179, 3:239, 4:1000}
+small_theta = {0: 59, 1: 119, 2: 179, 3: 239, 4: 1000}
 
 # Extra fuel cost for delay absorption (through cruise speed increases) per minute for
 # flight f.
@@ -244,7 +254,7 @@ fc = {f: 100 for f in F}
 # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
 # the passenger’s destination arrival delay via itinerary p′ compared with the planned
 # arrival time of itinerary p corresponds to delay level ζ
-pc = {(z,P.index(p),P.index(pd)): 100 for z in Z for p in P for pd in P}
+pc = {(z, P.index(p), P.index(pd)): 100 for z in Z for p in P for pd in P}
 
 # Per-flight schedule change penalty for not operating the flight using the originally
 # planned tail.

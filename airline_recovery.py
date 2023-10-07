@@ -678,7 +678,7 @@ def generate_output(
     if not disrupted_itins:
         print("No Itineraries Disrupted")
 
-    print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
+    print(f"Total Disrupted Passengers: {disrupted_passengers}")
 
     print("\nFlight Delays:")
     for f in F:

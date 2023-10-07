@@ -63,5 +63,6 @@ def generate_all_paths(graph, all_paths=[]):
         list(set(graph.get_all_nodes())), key=lambda x: x.get_time(), reverse=True
     )
     for start in sorted_graph:
+        print(start)
         all_paths = dfs_from_node(graph, start, all_paths)
     return sorted(all_paths + [[]], key=len)

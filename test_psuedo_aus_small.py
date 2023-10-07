@@ -863,8 +863,10 @@ def test_reschedule_flight_cancel():
                 for v in Y:
                     if P.index(p) == 16 and P.index(pd) == 15:
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
+                    elif P.index(p) == 22 and P.index(pd) == 0:
+                        assert int(h[P.index(p), P.index(pd), 1].x) == 40
                     else:
-                        assert int(h[P.index(p), P.index(pd), v].x) == 0 or int(h[P.index(p), P.index(pd), v].x) == 40
+                        assert int(h[P.index(p), P.index(pd), v].x) == 0
 
 
 def test_reschedule_airport_shutdown():

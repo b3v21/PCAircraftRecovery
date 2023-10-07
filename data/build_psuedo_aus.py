@@ -83,12 +83,13 @@ WEIGHTS = [0.25, 0.15, 0.15, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
 
 
 class Node:
-    def __init__(self, node_id, name, lat, long, time):
+    def __init__(self, node_id, name, lat, long, time, outgoing=True):
         self.id = node_id
         self.name = name
         self.lat = lat
         self.long = long
         self.time = time
+        self.outgoing = outgoing
 
     def __repr__(self):
         return f"{self.name}: {self.time}"
@@ -134,6 +135,18 @@ class AdjanecyList:
             if node.name == name:
                 result.append(node)
         return result
+    
+    def get_outgoing_nodes(self, name=None) -> list[Node]:
+        nodes = self.get_all_nodes()
+        unique_nodes = list(set(nodes))
+
+        if name:
+            return [
+                node
+                for node in unique_nodes
+                if node.outgoing and node.get_name() == name
+            ]
+        return [node for node in unique_nodes if node.outgoing]
 
     def add_neigh_to_node(self, node: Node, neighbour: Node, flight_id: int):
         if node in self.adj_list:

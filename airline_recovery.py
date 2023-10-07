@@ -665,20 +665,24 @@ def generate_output(
     for p in P:
         if lambd[P.index(p)].x > 0.9:
             disrupted_itins = True
-            print(f"I{P.index(p)} disrupted:")
+            print(f"I{P.index(p)} disrupted.")
 
-            for pd in P:
-                for v in Y:
-                    if p != pd:
-                        if int(h[P.index(p), P.index(pd), v].x) > 0:
-                            print(
-                                f"    I{P.index(p)} {*P[P.index(p)],} -> I{P.index(pd)} {*P[P.index(pd)],} (FC: {v}) people reassigned: {int(h[P.index(p), P.index(pd), v].x)}"
-                            )
-                            disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
     if not disrupted_itins:
         print("No Itineraries Disrupted")
+        
+    print("\nPassenger Reassignments:")
+    for p in P:
+        for pd in P:
+            for v in Y:
+                if p != pd:
+                    if int(h[P.index(p), P.index(pd), v].x) > 0:
+                        print(
+                            f"    I{P.index(p)} {*P[P.index(p)],} -> I{P.index(pd)} {*P[P.index(pd)],} (FC: {v}) people reassigned: {int(h[P.index(p), P.index(pd), v].x)}"
+                        )
+                        disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
+        
 
-    print(f"Total Disrupted Passengers: {disrupted_passengers}")
+    print(f"\nTotal Disrupted Passengers: {disrupted_passengers}")
 
     print("\nFlight Delays:")
     for f in F:

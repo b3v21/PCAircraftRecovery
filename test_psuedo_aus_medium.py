@@ -1,39 +1,34 @@
 from gurobipy import *
 from airline_recovery import *
 from data.build_psuedo_aus import *
+from algorithms import generate_all_paths
 import random
 import numpy as np
 from math import floor
+import pytest
 
-random.seed(59)
-graph_nodes = floor(random.normalvariate(100, 1))
-flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
+longrun = pytest.mark.skipif("not config.getoption('longrun')")
 
-graph = create_graph(flight_distribution)
-num_flights = graph.count_all_flights()
-print("graph created")
-
-# This represents the different types of itineraries which will be generated
-singles = []
-for p in range(num_flights):
-    singles.append([p])
-
-itin_classes = {}
-try:
-    P = generate_itineraries(graph, itin_classes, singles)
-except RecursionError:
-    print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-
-P.insert(0,[])
-
-print([p for p in P if len(p) > 1])
-print("itineraries created")
+random.seed(69)
 
 
 def build_base_data() -> tuple:
-    num_tails = 70  # This is somewhat arbitrary
+    graph_nodes = floor(random.normalvariate(123, 10))
+    flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
+
+    graph = create_graph(flight_distribution)
+    num_flights = graph.count_all_flights()
+    print("graph created")
+
+    try:
+        P = generate_all_paths(graph)
+    except RecursionError:
+        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
+    print("\nitineraries created")
+    
+    num_tails = 123  # This is somewhat arbitrary
     num_airports = 10
-    num_fare_classes = 2  # This is somewhat arbitrary
+    num_fare_classes = 4  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
 
     # Sets
@@ -44,8 +39,14 @@ def build_base_data() -> tuple:
     Z = range(num_delay_levels)
 
     # DEBUG GRAPH PRINTS
-    # for node, neigh in graph.adj_list.items():
-    #     print(node, ": ", [n for n in neigh if n[1] is not None])
+    for node, neigh in graph.adj_list.items():
+        print(node, ": ", [n for n in neigh if n[1] is not None])
+        
+    print(P)
+    
+    with open('./data/P.txt', 'w') as f:
+        f.write(P)
+        f.close()
 
     # Construct arrival and departure times
     std = {}
@@ -69,8 +70,8 @@ def build_base_data() -> tuple:
     FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
     # Capacity of arrival and departure slots
-    scA = {asl: 100 for asl in AA}
-    scD = {dsl: 100 for dsl in DA}
+    scA = {asl: 10 for asl in AA}
+    scD = {dsl: 10 for dsl in DA}
 
     print("slot data created")
 
@@ -133,10 +134,10 @@ def build_base_data() -> tuple:
         for p in P
         if p != []
     }
-    
+
     # Manually define the the compatibility of the empty itinerary
     CO_p[0] = [0]
-    
+
     # Manually add the empty itinerary as a compatible itinerary for each itinerary
     for p in P:
         CO_p[P.index(p)].append(0)
@@ -155,6 +156,30 @@ def build_base_data() -> tuple:
         for f in F
     }
 
+    tail_cap = {
+        "Boeing 737-800": 174,
+        "Boeing 787-9": 236,
+        "Airbus A380-800": 485,
+        "Airbus A330-300": 297,
+        "Airbus A330-200": 271,
+    }
+    tail_amount = {
+        "Boeing 737-800": 75,
+        "Boeing 787-9": 14,
+        "Airbus A380-800": 10,
+        "Airbus A330-300": 10,
+        "Airbus A330-200": 14,
+    }
+
+    q = {}
+    # Seating capacity of tail t in T
+    for t in T:
+        tail = random.choice(list(tail_cap.keys()))
+        while tail_amount[tail] <= 0:
+            tail = random.choice(list(tail_cap.keys()))
+        tail_amount[tail] -= 1
+        q[t] = tail_cap[tail]
+
     print("itinerary and flight data created")
 
     # Cost of operating flight f with tail t
@@ -165,20 +190,45 @@ def build_base_data() -> tuple:
 
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
-    n = {(v, P.index(p)): 50 for v in Y for p in P}
+    itin_classes = {1: num_flights, 2: 20, 3: 5}
 
-    # Seating capacity of tail t in T
-    q = {t: 250 for t in T}
+    # Number of passengers in fare class v that are originally scheduled to take itinerary p
+    n = {(v, P.index(p)): 0 for v in Y for p in P}
+
+    P_copy = deepcopy(P)
+    itins_to_make = sum(list(itin_classes.values()))
+
+    for _ in range(itins_to_make):
+        itin = random.choice(P_copy)
+        while (
+            len(itin) not in list(itin_classes.keys())
+            or itin_classes.get(len(itin), 0) == 0
+        ):
+            itin = random.choice(P_copy)
+        print(itin)
+        for v in Y:
+            n[(v, P_copy.index(itin))] = 50
+        P_copy.remove(itin)
+        itin_classes[len(itin)] -= 1
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
-    rc = {
-        (P.index(p), P.index(pd)): (lambda p, pd: 0 if p == pd else 600)(p, pd)
-        for p in P
-        for pd in P
-    }
+    rc_costs = {time : 100 for time in range(0, 4)}
+    for time in range (3,7):
+        rc_costs[time] = 400
+    for time in range (6, 17):
+        rc_costs[time] = 600
+    for time in range (16, 72):
+        rc_costs[time] = 1000
+    
+    rc = {}
+    for p in P:
+        for pd in P:
+            if p != [] and pd != [] and std[pd[0]] >= std[p[0]]:
+                time_diff = math.floor(std[pd[0]] - std[p[0]])
+                rc[(P.index(p), P.index(pd))] = rc_costs[time_diff]
 
     for p in P:
-        rc[(P.index(p), 0)] = 1500
+        rc[(P.index(p), 0)] = 1600
 
     # Phantom rate for passenger in fare class v reassigned from p to pd with delay level
     # zeta
@@ -212,7 +262,7 @@ def build_base_data() -> tuple:
     # passenger who was scheduled to take itinerary p and is reassigned to itinerary p’, if
     # the passenger’s destination arrival delay via itinerary p′ compared with the planned
     # arrival time of itinerary p corresponds to delay level ζ
-    pc = {(z, P.index(p), P.index(pd)): 250 for z in Z for p in P for pd in P}
+    pc = {(z, P.index(p), P.index(pd)): 200 + z * 150 for z in Z for p in P for pd in P}
 
     print("cost data created")
 
@@ -285,7 +335,9 @@ def build_base_data() -> tuple:
     )
 
 
+@longrun
 def test_psuedo_aus_medium_size():
+
     m = Model("airline recovery aus medium")
 
     (
@@ -352,6 +404,7 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing to get xhat...")
     m.setParam("OutputFlag", 1)
+    m.setParam("MIPGap", 0.1)
     m.optimize()
 
     x_hat = generate_x_hat(m, variables, F, T)
@@ -377,6 +430,7 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
+    m.setParam("MIPGap", 0.1)
     m.optimize()
 
     print("generating output...")

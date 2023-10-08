@@ -20,11 +20,17 @@ def build_base_data() -> tuple:
     num_flights = graph.count_all_flights()
     print("graph created")
 
+    itin_classes = {1: 20, 2: 5, 3: 1}
+
     try:
-        P = generate_all_paths(graph)
+        P = generate_all_paths(graph, itin_classes, [])
     except RecursionError:
         print("ERROR: Recursion depth exceeded, please reduce itinerary length")
     print("\nitineraries created")
+    
+    P.insert(0,[])
+    print("\nitineraries created")
+    print(P, "\n")
     
     num_tails = 123  # This is somewhat arbitrary
     num_airports = 10
@@ -39,10 +45,11 @@ def build_base_data() -> tuple:
     Z = range(num_delay_levels)
 
     # DEBUG GRAPH PRINTS
+    print("Graph")
     for node, neigh in graph.adj_list.items():
-        print(node, ": ", [n for n in neigh if n[1] is not None])
-        
-    print(P)
+        if len([n for n in neigh if n[1] is not None]) > 0:
+            print(node, ": ", [n for n in neigh if n[1] is not None])
+    print()
     
     with open('./data/P.txt', 'w') as f:
         f.write(str(P))

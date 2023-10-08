@@ -1,17 +1,15 @@
 from gurobipy import *
 from airline_recovery import *
 from data.build_psuedo_aus import *
-from algorithms import generate_all_paths
+from algorithms import gen_new_itins
 import random
 import numpy as np
 from math import floor
 import pytest
-from copy import deepcopy
+import json
 
 longrun = pytest.mark.skipif("not config.getoption('longrun')")
-
 random.seed(69)
-
 
 def build_base_data() -> tuple:
     graph_nodes = floor(random.normalvariate(123, 10))
@@ -21,35 +19,6 @@ def build_base_data() -> tuple:
     num_flights = graph.count_all_flights()
     print("graph created")
 
-    itin_classes = {1: 20, 2: 5, 3: 1}
-
-    try:
-        P = generate_all_paths(graph)
-    except RecursionError:
-        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-    print("\nitineraries created")
-    
-    # Limit itins used based on itin_classes
-    P_copy = deepcopy(P)
-    itins_to_make = sum(list(itin_classes.values()))
-
-    for _ in range(itins_to_make):
-        itin = random.choice(P_copy)
-        while (
-            len(itin) not in list(itin_classes.keys())
-            or itin_classes.get(len(itin), 0) == 0
-        ):
-            itin = random.choice(P_copy)
-        print(itin)
-        for v in Y:
-            n[(v, P_copy.index(itin))] = 50
-        P_copy.remove(itin)
-        itin_classes[len(itin)] -= 1
-    
-    P.insert(0,[])
-    print("\nitineraries used:")
-    print(P, "\n")
-    
     num_tails = 123  # This is somewhat arbitrary
     num_airports = 10
     num_fare_classes = 4  # This is somewhat arbitrary
@@ -62,6 +31,9 @@ def build_base_data() -> tuple:
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
 
+    # RUN IF YOU WANT TO GENERATE ITINERARIES WITH NEW ITIN_CLASSES
+    # P = gen_new_itins(graph, num_flights, INSERT SAVE FILE NAME HERE)
+    
     # DEBUG GRAPH PRINTS
     print("Graph")
     for node, neigh in graph.adj_list.items():
@@ -69,9 +41,12 @@ def build_base_data() -> tuple:
             print(node, ": ", [n for n in neigh if n[1] is not None])
     print()
     
-    with open('./data/medium_itins.txt', 'w') as f:
-        f.write(str(P))
-        f.close()
+    # Read saved itineraries
+    with open('./data/medium_itins.txt', 'r') as f:
+        P = json.loads(f.read())
+
+    print("\nitineraries used:")
+    print(P, "\n")
 
     # Construct arrival and departure times
     std = {}
@@ -81,6 +56,9 @@ def build_base_data() -> tuple:
             if flight_id != None:
                 std[flight_id] = n.time
                 sta[flight_id] = neigh.time
+                
+    # Number of passengers in fare class v that are originally scheduled to take itinerary p
+    n = {(v, P.index(p)): 50 for v in Y for p in P}
 
     # Construct arrival and departure slots
     DA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
@@ -212,13 +190,6 @@ def build_base_data() -> tuple:
 
     # Delay cost per hour of arrival delay of flight f
     dc = {f: 12500 for f in F}
-
-    # Number of passengers in fare class v that are originally scheduled to
-    # take itinerary p
-    itin_classes = {1: num_flights, 2: 20, 3: 5}
-
-    # Number of passengers in fare class v that are originally scheduled to take itinerary p
-    n = {(v, P.index(p)): 0 for v in Y for p in P}
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
     rc_costs = {time : 100 for time in range(0, 4)}

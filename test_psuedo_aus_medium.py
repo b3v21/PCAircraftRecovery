@@ -6,6 +6,7 @@ import random
 import numpy as np
 from math import floor
 import pytest
+from copy import deepcopy
 
 longrun = pytest.mark.skipif("not config.getoption('longrun')")
 
@@ -23,13 +24,30 @@ def build_base_data() -> tuple:
     itin_classes = {1: 20, 2: 5, 3: 1}
 
     try:
-        P = generate_all_paths(graph, itin_classes, [])
+        P = generate_all_paths(graph)
     except RecursionError:
         print("ERROR: Recursion depth exceeded, please reduce itinerary length")
     print("\nitineraries created")
     
+    # Limit itins used based on itin_classes
+    P_copy = deepcopy(P)
+    itins_to_make = sum(list(itin_classes.values()))
+
+    for _ in range(itins_to_make):
+        itin = random.choice(P_copy)
+        while (
+            len(itin) not in list(itin_classes.keys())
+            or itin_classes.get(len(itin), 0) == 0
+        ):
+            itin = random.choice(P_copy)
+        print(itin)
+        for v in Y:
+            n[(v, P_copy.index(itin))] = 50
+        P_copy.remove(itin)
+        itin_classes[len(itin)] -= 1
+    
     P.insert(0,[])
-    print("\nitineraries created")
+    print("\nitineraries used:")
     print(P, "\n")
     
     num_tails = 123  # This is somewhat arbitrary
@@ -51,7 +69,7 @@ def build_base_data() -> tuple:
             print(node, ": ", [n for n in neigh if n[1] is not None])
     print()
     
-    with open('./data/P.txt', 'w') as f:
+    with open('./data/medium_itins.txt', 'w') as f:
         f.write(str(P))
         f.close()
 
@@ -201,22 +219,6 @@ def build_base_data() -> tuple:
 
     # Number of passengers in fare class v that are originally scheduled to take itinerary p
     n = {(v, P.index(p)): 0 for v in Y for p in P}
-
-    P_copy = deepcopy(P)
-    itins_to_make = sum(list(itin_classes.values()))
-
-    for _ in range(itins_to_make):
-        itin = random.choice(P_copy)
-        while (
-            len(itin) not in list(itin_classes.keys())
-            or itin_classes.get(len(itin), 0) == 0
-        ):
-            itin = random.choice(P_copy)
-        print(itin)
-        for v in Y:
-            n[(v, P_copy.index(itin))] = 50
-        P_copy.remove(itin)
-        itin_classes[len(itin)] -= 1
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
     rc_costs = {time : 100 for time in range(0, 4)}

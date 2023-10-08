@@ -1,17 +1,26 @@
 from gurobipy import *
 from airline_recovery import *
 from data.build_psuedo_aus import *
+from algorithms import gen_new_itins
 import random
 import numpy as np
 from math import floor
 import pytest
+import json
 
 longrun = pytest.mark.skipif("not config.getoption('longrun')")
-
+random.seed(69)
 
 def build_base_data() -> tuple:
+    graph_nodes = floor(random.normalvariate(500, 30))
+    flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
+
+    graph = create_graph(flight_distribution)
+    num_flights = graph.count_all_flights()
+    print("graph created")
+
     num_tails = 123  # This is somewhat arbitrary
-    num_airports = 10
+    num_airports = AIRPORTS
     num_fare_classes = 4  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
 
@@ -22,9 +31,23 @@ def build_base_data() -> tuple:
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
 
+    # RUN IF YOU WANT TO GENERATE ITINERARIES WITH NEW ITIN_CLASSES
+    itin_classes = {1: num_flights, 2: 50, 3: 15}
+    P = gen_new_itins(graph, num_flights, "large_itins", itin_classes)
+    
     # DEBUG GRAPH PRINTS
+    print("Graph")
     for node, neigh in graph.adj_list.items():
-        print(node, ": ", [n for n in neigh if n[1] is not None])
+        if len([n for n in neigh if n[1] is not None]) > 0:
+            print(node, ": ", [n for n in neigh if n[1] is not None])
+    print()
+    
+    # # Read saved itineraries
+    # with open('./data/medium_itins.txt', 'r') as f:
+    #     P = json.loads(f.read())
+
+    # print("\nitineraries used:")
+    # print(P, "\n")
 
     # Construct arrival and departure times
     std = {}
@@ -34,10 +57,13 @@ def build_base_data() -> tuple:
             if flight_id != None:
                 std[flight_id] = n.time
                 sta[flight_id] = neigh.time
+                
+    # Number of passengers in fare class v that are originally scheduled to take itinerary p
+    n = {(v, P.index(p)): 50 for v in Y for p in P}
 
     # Construct arrival and departure slots
-    DA = [(float(t), float(t + 0.5)) for t in np.arange(0, TIME_HORIZON, 0.5)]
-    AA = [(float(t), float(t + 0.5)) for t in np.arange(0, TIME_HORIZON, 0.5)]
+    DA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
+    AA = [(float(t), float(t + 2)) for t in np.arange(0, TIME_HORIZON, 2)]
 
     # Set of arrival and departure slots compatible with flight f (dict indexed by flight)
     AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
@@ -48,8 +74,8 @@ def build_base_data() -> tuple:
     FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
 
     # Capacity of arrival and departure slots
-    scA = {asl: 20 for asl in AA}
-    scD = {dsl: 20 for dsl in DA}
+    scA = {asl: 10 for asl in AA}
+    scD = {dsl: 10 for dsl in DA}
 
     print("slot data created")
 
@@ -165,25 +191,6 @@ def build_base_data() -> tuple:
 
     # Delay cost per hour of arrival delay of flight f
     dc = {f: 12500 for f in F}
-
-    # Number of passengers in fare class v that are originally scheduled to take itinerary p
-    n = {(v, P.index(p)): 0 for v in Y for p in P}
-
-    P_copy = deepcopy(P)
-    itins_to_make = sum(list(itin_classes.values()))
-
-    for _ in range(itins_to_make):
-        itin = random.choice(P_copy)
-        while (
-            len(itin) not in list(itin_classes.keys())
-            or itin_classes.get(len(itin), 0) == 0
-        ):
-            itin = random.choice(P_copy)
-        print(itin)
-        for v in Y:
-            n[(v, P_copy.index(itin))] = 50
-        P_copy.remove(itin)
-        itin_classes[len(itin)] -= 1
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
     rc_costs = {time : 100 for time in range(0, 4)}
@@ -310,32 +317,9 @@ def build_base_data() -> tuple:
 
 
 @longrun
-def test_psuedo_aus_large_size():
-    random.seed(59)
-    graph_nodes = floor(random.normalvariate(1000, 100))
-    flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
+def test_psuedo_aus_medium_size():
 
-    graph = create_graph(flight_distribution)
-    num_flights = graph.count_all_flights()
-    print("graph created")
-
-    # This represents the different types of itineraries which will be generated
-    singles = []
-    for p in range(num_flights):
-        singles.append([p])
-
-    itin_classes = {}
-    try:
-        P = generate_itineraries(graph, itin_classes, singles)
-    except RecursionError:
-        print("ERROR: Recursion depth exceeded, please reduce itinerary length")
-
-    P.insert(0, [])
-
-    print([p for p in P if len(p) > 1])
-    print("itineraries created")
-
-    m = Model("airline recovery aus large")
+    m = Model("airline recovery aus medium")
 
     (
         T,
@@ -401,7 +385,7 @@ def test_psuedo_aus_large_size():
 
     print("optimizing to get xhat...")
     m.setParam("OutputFlag", 1)
-    m.setParam("MIPGap", 0.1)
+    m.setParam("MIPGap", 0.01)
     m.optimize()
 
     x_hat = generate_x_hat(m, variables, F, T)
@@ -427,7 +411,7 @@ def test_psuedo_aus_large_size():
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
-    m.setParam("MIPGap", 0.1)
+    m.setParam("MIPGap", 0.01)
     m.optimize()
 
     print("generating output...")

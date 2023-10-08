@@ -32,7 +32,8 @@ def build_base_data() -> tuple:
     Z = range(num_delay_levels)
 
     # RUN IF YOU WANT TO GENERATE ITINERARIES WITH NEW ITIN_CLASSES
-    # P = gen_new_itins(graph, num_flights, INSERT SAVE FILE NAME HERE)
+    # itin_classes = {1: num_flights, 2: 20, 3: 5}
+    # P = gen_new_itins(graph, num_flights, INSERT SAVE FILE NAME HERE, itin_classes)
     
     # DEBUG GRAPH PRINTS
     print("Graph")
@@ -384,7 +385,7 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing to get xhat...")
     m.setParam("OutputFlag", 1)
-    m.setParam("MIPGap", 0.1)
+    m.setParam("MIPGap", 0.01)
     m.optimize()
 
     x_hat = generate_x_hat(m, variables, F, T)
@@ -410,7 +411,7 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
-    m.setParam("MIPGap", 0.1)
+    m.setParam("MIPGap", 0.01)
     m.optimize()
 
     print("generating output...")

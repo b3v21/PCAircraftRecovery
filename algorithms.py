@@ -50,7 +50,7 @@ def dfs_from_node(graph, start, all_paths, path=[]):
                 new_path = deepcopy(path) + [neigh[1]]
                 if new_path not in all_paths:
                     all_paths.append(new_path)
-                if len(new_path) != 5:
+                if len(new_path) != 3:
                     dfs_from_node(graph, gn, all_paths, new_path)
     return all_paths
 
@@ -68,10 +68,9 @@ def generate_all_paths(graph, all_paths=[]):
         all_paths = dfs_from_node(graph, start, all_paths)
     return sorted(all_paths + [[]], key=len)
 
-def gen_new_itins(graph, num_flights, save_name):
+def gen_new_itins(graph, num_flights, save_name, itin_classes):
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
-    itin_classes = {1: num_flights, 2: 20, 3: 5}
 
     try:
         P = generate_all_paths(graph)
@@ -105,7 +104,7 @@ def gen_new_itins(graph, num_flights, save_name):
             print(node, ": ", [n for n in neigh if n[1] is not None])
     print()
     
-    with open('./data/{save_name}.txt', 'w') as f:
+    with open(f'./data/{save_name}.txt', 'w') as f:
         f.write(str(P_used))
         f.close()
         

@@ -50,7 +50,8 @@ def dfs_from_node(graph, start, all_paths, path=[]):
                 new_path = deepcopy(path) + [neigh[1]]
                 if new_path not in all_paths:
                     all_paths.append(new_path)
-                dfs_from_node(graph, gn, all_paths, new_path)
+                if len(new_path) != 5:
+                    dfs_from_node(graph, gn, all_paths, new_path)
     return all_paths
 
 

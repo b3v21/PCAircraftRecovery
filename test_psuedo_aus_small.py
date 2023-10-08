@@ -157,7 +157,7 @@ def build_base_data() -> tuple:
     for p in P:
         for pd in P:
             if p != [] and pd != [] and std[pd[0]] >= std[p[0]]:
-                time_diff = math.floor(std[pd[0]] - std[p[0]])
+                time_diff = floor(std[pd[0]] - std[p[0]])
                 rc[(P.index(p), P.index(pd))] = rc_costs[time_diff]
                 
     for p in P:
@@ -428,7 +428,14 @@ def test_standard_solve():
         fc,
     )
 
+    _, z, _, _, _, _, _, lambd, _, _, _, _, _, _, _, _ = variables
+
+    # Obj the same, no flights cancelled and no itineraries disrupted
     assert round(standard_solve.objVal, 2) == round(original_obj_val, 2)
+    for f in F:
+        assert z[f].x < 0.9
+    for p in P:
+        assert lambd[P.index(p)].x < 0.9
 
 
 def test_reschedule_slot_cancel():

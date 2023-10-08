@@ -45,7 +45,7 @@ def build_base_data() -> tuple:
     print(P)
     
     with open('./data/P.txt', 'w') as f:
-        f.write(P)
+        f.write(str(P))
         f.close()
 
     # Construct arrival and departure times

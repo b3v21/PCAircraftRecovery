@@ -32,8 +32,8 @@ def build_base_data() -> tuple:
     Z = range(num_delay_levels)
 
     # RUN IF YOU WANT TO GENERATE ITINERARIES WITH NEW ITIN_CLASSES
-    itin_classes = {1: num_flights, 2: 50, 3: 15}
-    P = gen_new_itins(graph, num_flights, "large_itins", itin_classes)
+    # itin_classes = {1: num_flights, 2: 50, 3: 15}
+    # P = gen_new_itins(graph, num_flights, "large_itins", itin_classes)
     
     # DEBUG GRAPH PRINTS
     print("Graph")
@@ -42,12 +42,12 @@ def build_base_data() -> tuple:
             print(node, ": ", [n for n in neigh if n[1] is not None])
     print()
     
-    # # Read saved itineraries
-    # with open('./data/medium_itins.txt', 'r') as f:
-    #     P = json.loads(f.read())
+    # Read saved itineraries
+    with open('./data/large_itins.txt', 'r') as f:
+        P = json.loads(f.read())
 
-    # print("\nitineraries used:")
-    # print(P, "\n")
+    print("\nitineraries used:")
+    print(P, "\n")
 
     # Construct arrival and departure times
     std = {}

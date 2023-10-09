@@ -96,13 +96,6 @@ def gen_new_itins(graph, num_flights, save_name, itin_classes):
     
     print("\nitineraries used:")
     print(P_used, "\n")
-
-    # DEBUG GRAPH PRINTS
-    print("Graph")
-    for node, neigh in graph.adj_list.items():
-        if len([n for n in neigh if n[1] is not None]) > 0:
-            print(node, ": ", [n for n in neigh if n[1] is not None])
-    print()
     
     with open(f'./data/{save_name}.txt', 'w') as f:
         f.write(str(P_used))

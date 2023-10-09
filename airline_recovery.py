@@ -661,7 +661,7 @@ def generate_output(
     if not cancelled:
         print("No Flights Cancelled")
 
-    print("\nTotal Flights Cancelled: ", cancelled_count)
+    print("\nTotal Flights Cancelled:", cancelled_count)
 
     disrupted_itins = False
     disrupted_passengers = 0
@@ -673,7 +673,7 @@ def generate_output(
             disrupted_count += 1
             print(f"I{P.index(p)} disrupted.")
 
-    print("\nTotal Disrupted Itineraries: ", disrupted_count)
+    print("\nTotal Disrupted Itineraries:", disrupted_count)
 
     if not disrupted_itins:
         print("No Itineraries Disrupted")

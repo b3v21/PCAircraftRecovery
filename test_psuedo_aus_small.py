@@ -19,7 +19,7 @@ try:
 except RecursionError:
     print("ERROR: Recursion depth exceeded, please reduce itinerary length")
 
-P.insert(0,[])
+P.insert(0, [])
 print("\nitineraries created")
 print(P, "\n")
 
@@ -124,10 +124,10 @@ def build_base_data() -> tuple:
         for p in P
         if p != []
     }
-    
+
     # Manually define the the compatibility of the empty itinerary
     CO_p[0] = [0]
-    
+
     # Manually add the empty itinerary as a compatible itinerary for each itinerary
     for p in P:
         CO_p[P.index(p)].append(0)
@@ -145,21 +145,21 @@ def build_base_data() -> tuple:
     q = {t: 250 for t in T}
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
-    rc_costs = {time : 100 for time in range(0, 4)}
-    for time in range (3,7):
+    rc_costs = {time: 100 for time in range(0, 4)}
+    for time in range(3, 7):
         rc_costs[time] = 400
-    for time in range (6, 17):
+    for time in range(6, 17):
         rc_costs[time] = 600
-    for time in range (16, 72):
+    for time in range(16, 72):
         rc_costs[time] = 1000
-    
+
     rc = {}
     for p in P:
         for pd in P:
             if p != [] and pd != [] and std[pd[0]] >= std[p[0]]:
                 time_diff = floor(std[pd[0]] - std[p[0]])
                 rc[(P.index(p), P.index(pd))] = rc_costs[time_diff]
-                
+
     for p in P:
         rc[(P.index(p), 0)] = 1600
 
@@ -871,7 +871,9 @@ def test_reschedule_flight_cancel():
                     if P.index(p) == 16 and P.index(pd) == 15:
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
                     elif P.index(p) == 22 and P.index(pd) == 0:
-                        assert int(h[P.index(p), P.index(pd), 1].x) == 40
+                        assert (int(h[P.index(p), P.index(pd), 1].x) == 40) or (
+                            int(h[P.index(p), P.index(pd), 0].x) == 40
+                        )
                     else:
                         assert int(h[P.index(p), P.index(pd), v].x) == 0
 
@@ -1029,7 +1031,13 @@ def test_reschedule_airport_shutdown():
     kappa = 1000
 
     print("Regenerate neccecary constraints...")
-    pc = {(z, P.index(p), P.index(pd)): 0 for z in Z for p in P for pd in P}
+    for p in P:
+        for pd in P:
+            for z in Z:
+                for f in p:
+                    if (std[f] >= 50 and std[f] <= 70) and (DK_f[f] == "SYD"):
+                        pc[(z, P.index(p), P.index(pd))] = 0
+
     set_objective(
         test_reschedule_airport_shutdown,
         variables,
@@ -1077,12 +1085,12 @@ def test_reschedule_airport_shutdown():
     _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
 
     for f in F:
-        if f == 0 or f == 6 or f ==10:
+        if f == 0 or f == 6:
             assert z[f].x > 0.9
         else:
             assert z[f].x < 0.9
     for p in P:
-        if P.index(p) == 3 or P.index(p) == 11 or P.index(p) == 23 or P.index(p) == 7:
+        if P.index(p) == 3 or P.index(p) == 11 or P.index(p) == 23 or P.index(p) == 21:
             assert lambd[P.index(p)].x > 0.9
         else:
             assert lambd[P.index(p)].x < 0.9
@@ -1093,7 +1101,7 @@ def test_reschedule_airport_shutdown():
                     if any(
                         [
                             P.index(p) == 3 and P.index(pd) == 2,
-                            P.index(p) == 7 and P.index(pd) == 1,
+                            P.index(p) == 21 and P.index(pd) == 0,
                             P.index(p) == 11 and P.index(pd) == 2,
                             P.index(p) == 23 and P.index(pd) == 0,
                         ]

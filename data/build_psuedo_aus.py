@@ -135,7 +135,7 @@ class AdjanecyList:
             if node.name == name:
                 result.append(node)
         return result
-    
+
     def get_outgoing_nodes(self, name=None) -> list[Node]:
         nodes = self.get_all_nodes()
         unique_nodes = list(set(nodes))

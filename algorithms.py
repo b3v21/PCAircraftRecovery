@@ -68,6 +68,7 @@ def generate_all_paths(graph, all_paths=[]):
         all_paths = dfs_from_node(graph, start, all_paths)
     return sorted(all_paths + [[]], key=len)
 
+
 def gen_new_itins(graph, num_flights, save_name, itin_classes):
     # Number of passengers in fare class v that are originally scheduled to
     # take itinerary p
@@ -77,7 +78,7 @@ def gen_new_itins(graph, num_flights, save_name, itin_classes):
     except RecursionError:
         print("ERROR: Recursion depth exceeded, please reduce itinerary length")
     print("\nitineraries created")
-    
+
     # Limit itins used based on itin_classes
     P_copy = deepcopy(P)
     P_used = []
@@ -93,12 +94,12 @@ def gen_new_itins(graph, num_flights, save_name, itin_classes):
         P_copy.remove(itin)
         P_used.append(itin)
         itin_classes[len(itin)] -= 1
-    
+
     print("\nitineraries used:")
     print(P_used, "\n")
-    
-    with open(f'./data/{save_name}.txt', 'w') as f:
+
+    with open(f"./data/{save_name}.txt", "w") as f:
         f.write(str(P_used))
         f.close()
-        
+
     return P_used

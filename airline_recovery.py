@@ -657,10 +657,10 @@ def generate_output(
         if z[f].x > 0.9:
             print(f"F{f} cancelled")
             cancelled = True
-            cancelled_count +=1
+            cancelled_count += 1
     if not cancelled:
         print("No Flights Cancelled")
-        
+
     print("\nTotal Flights Cancelled: ", cancelled_count)
 
     disrupted_itins = False
@@ -670,14 +670,14 @@ def generate_output(
     for p in P:
         if lambd[P.index(p)].x > 0.9:
             disrupted_itins = True
-            disrupted_count +=1
+            disrupted_count += 1
             print(f"I{P.index(p)} disrupted.")
-            
+
     print("\nTotal Disrupted Itineraries: ", disrupted_count)
 
     if not disrupted_itins:
         print("No Itineraries Disrupted")
-        
+
     print("\nPassenger Reassignments:")
     for p in P:
         for pd in P:
@@ -688,10 +688,12 @@ def generate_output(
                             f"    I{P.index(p)} {*P[P.index(p)],} -> I{P.index(pd)} {*P[P.index(pd)],} (FC: {v}) people reassigned: {int(h[P.index(p), P.index(pd), v].x)}"
                         )
                         disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
-        
+
     total_passengers = sum([n[v, P.index(p)] for v in Y for p in P])
     print(f"\nTotal Reassigned Passengers: {disrupted_passengers}")
-    print(f"Percentage of Passengers Reassigned: {round(disrupted_passengers/total_passengers*100,2)}%")
+    print(
+        f"Percentage of Passengers Reassigned: {round(disrupted_passengers/total_passengers*100,2)}%"
+    )
 
     print("\nFlight Delays:")
     for f in F:
@@ -705,7 +707,7 @@ def generate_output(
         if deltaA[f].x > 1e-5 or deltaD[f].x > 1e-5:
             print(out)
 
-    print("\nTotal Cost: ", round(m.objVal,2))
+    print("\nTotal Cost: ", round(m.objVal, 2))
 
     print("\n" + 60 * "-")
 

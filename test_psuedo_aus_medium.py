@@ -11,6 +11,7 @@ import json
 longrun = pytest.mark.skipif("not config.getoption('longrun')")
 random.seed(69)
 
+
 def build_base_data() -> tuple:
     graph_nodes = floor(random.normalvariate(123, 10))
     flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
@@ -34,16 +35,16 @@ def build_base_data() -> tuple:
     # RUN IF YOU WANT TO GENERATE ITINERARIES WITH NEW ITIN_CLASSES
     # itin_classes = {1: num_flights, 2: 20, 3: 5}
     # P = gen_new_itins(graph, num_flights, INSERT SAVE FILE NAME HERE, itin_classes)
-    
+
     # DEBUG GRAPH PRINTS
     print("Graph")
     for node, neigh in graph.adj_list.items():
         if len([n for n in neigh if n[1] is not None]) > 0:
             print(node, ": ", [n for n in neigh if n[1] is not None])
     print()
-    
+
     # Read saved itineraries
-    with open('./data/medium_itins.txt', 'r') as f:
+    with open("./data/medium_itins.txt", "r") as f:
         P = json.loads(f.read())
 
     print("\nitineraries used:")
@@ -57,7 +58,7 @@ def build_base_data() -> tuple:
             if flight_id != None:
                 std[flight_id] = n.time
                 sta[flight_id] = neigh.time
-                
+
     # Number of passengers in fare class v that are originally scheduled to take itinerary p
     n = {(v, P.index(p)): 50 for v in Y for p in P}
 
@@ -193,14 +194,14 @@ def build_base_data() -> tuple:
     dc = {f: 12500 for f in F}
 
     # Reaccommodation Cost for a passenger reassigned from p to pd.
-    rc_costs = {time : 100 for time in range(0, 4)}
-    for time in range (3,7):
+    rc_costs = {time: 100 for time in range(0, 4)}
+    for time in range(3, 7):
         rc_costs[time] = 400
-    for time in range (6, 17):
+    for time in range(6, 17):
         rc_costs[time] = 600
-    for time in range (16, 72):
+    for time in range(16, 72):
         rc_costs[time] = 1000
-    
+
     rc = {}
     for p in P:
         for pd in P:
@@ -318,7 +319,6 @@ def build_base_data() -> tuple:
 
 @longrun
 def test_psuedo_aus_medium_size():
-
     m = Model("airline recovery aus medium")
 
     (

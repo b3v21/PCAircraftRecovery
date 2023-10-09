@@ -263,9 +263,9 @@ pc = {(z, P.index(p), P.index(pd)): 100 for z in Z for p in P for pd in P}
 kappa = 2000
 
 # One if flight f was originally scheduled to be operated by tail t, and zero otherwise.
-x_hat = {(f,t): 0 for t in T for f in F}
-x_hat[(0,0)]=1
-x_hat[(1,1)]=1
-x_hat[(2,2)]=1
-x_hat[(3,3)]=1
-x_hat[(4,4)]=1
+x_hat = {(f, t): 0 for t in T for f in F}
+x_hat[(0, 0)] = 1
+x_hat[(1, 1)] = 1
+x_hat[(2, 2)] = 1
+x_hat[(3, 3)] = 1
+x_hat[(4, 4)] = 1

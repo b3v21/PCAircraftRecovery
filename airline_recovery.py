@@ -697,15 +697,16 @@ def generate_output(
 
     print("\nFlight Delays:")
     for f in F:
-        out = ""
-        if deltaD[f].x > 1e-5:
-            out += f"F{f} Departure Delay: {round(deltaD[f].x,1)} "
-        if deltaA[f].x > 1e-5:
-            out += f"F{f} Arrival Delay: {round(deltaA[f].x,1)} "
-        if deltaD[f].x - deltaA[f].x > 1e-3:
-            out += f"-> Delay Absorbed: {round(deltaD[f].x - deltaA[f].x,2)}"
-        if deltaA[f].x > 1e-5 or deltaD[f].x > 1e-5:
-            print(out)
+        if z[f].x < 0.1:
+            out = ""
+            if deltaD[f].x > 1e-5:
+                out += f"F{f} Departure Delay: {round(deltaD[f].x,1)} "
+            if deltaA[f].x > 1e-5:
+                out += f"F{f} Arrival Delay: {round(deltaA[f].x,1)} "
+            if deltaD[f].x - deltaA[f].x > 1e-3:
+                out += f"-> Delay Absorbed: {round(deltaD[f].x - deltaA[f].x,2)}"
+            if deltaA[f].x > 1e-5 or deltaD[f].x > 1e-5:
+                print(out)
 
     print("\nTotal Cost: ", round(m.objVal, 2))
 

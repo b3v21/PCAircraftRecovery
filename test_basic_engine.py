@@ -2,6 +2,8 @@ from gurobipy import *
 from airline_recovery import *
 from collections import deque
 
+TIME_HORIZON = 72
+
 
 def test_basic_solve():
     """
@@ -23,6 +25,7 @@ def test_basic_solve():
     num_airports = 3
     num_fare_classes = 2
     num_delay_levels = 2
+    num_time_instances = 2
 
     T = range(num_tails)
     F = range(num_flights)
@@ -33,6 +36,23 @@ def test_basic_solve():
 
     std = {f: f + 0.5 for f in F}
     sta = {f: f + 1 for f in F}
+
+    # MAINTENANCE DATA / SETS
+    PI = range(num_time_instances)
+    MO = set([(f, fd) for f in F for fd in F])
+    F_pi = {
+        pi: [f for f in F if sta[f] <= (1 + pi) * (TIME_HORIZON / num_time_instances)]
+        for pi in PI
+    }
+    K_m = set([k for k in K])
+    T_m = set([0])
+    PI_m = set([0])
+
+    abh = {t: 5 for t in T}
+    sbh = {f: 5 for f in F}
+    mbh = {t: 40 for t in T}
+    mt = {t: 8 for t in T}
+    aw = {k: 1 for k in K}
 
     DA = [(f, f + 1) for f in F]
     AA = [(f - 0.5, f + 0.5) for f in range(1, num_flights + 1)]
@@ -168,6 +188,7 @@ def test_basic_solve():
         basic_solve, variables, F, Z, P, sta, CO_p, lf, small_theta
     )
     beta_linearizing_constraints(basic_solve, variables, Y, Z, P, CO_p)
+    maintenance_schedule_constraints(basic_solve, variables, T_m, sta, T_f, F)
 
     print("optimizing...")
     basic_solve.optimize()
@@ -190,9 +211,10 @@ def test_basic_solve():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    _, z, _, _, _, _, _, lambd, _, _, _, _, _, _, _, _ = variables
+    _, z, _, _, _, _, _, lambd, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     # No flights cancelled and no itineraries disrupted
     for f in F:

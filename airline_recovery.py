@@ -83,6 +83,15 @@ def generate_variables(
         for g in Z
     }
 
+    # Starting time of maintenance operations for tail t
+    imt = {t: m.addVar(vtype=GRB.BINARY) for t in T}
+
+    # Ending time of maintenance operations for tail t
+    fmt = {t: m.addVar(vtype=GRB.BINARY) for t in T}
+
+    # One if tail t undergoes maintenance immediately after flight f and 0 otherwise
+    w = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
+
     return [
         x,
         z,
@@ -100,6 +109,9 @@ def generate_variables(
         gamma,
         tao,
         beta,
+        imt,
+        fmt,
+        w,
     ]
 
 
@@ -126,7 +138,7 @@ def set_objective(
     Set the objective function for the model
     """
 
-    x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
+    x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta, _, _, _ = variables
 
     print("setting objective...")
     m.setObjective(
@@ -172,7 +184,7 @@ def flight_scheduling_constraints(
     Flight Scheduling Constraints
     """
 
-    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     print("adding flight scheduling constraints...")
 
@@ -190,7 +202,7 @@ def sequencing_and_fleet_size_constraints(
     at all during the recovery period
     """
 
-    x, z, y, sigma, rho, phi, _, _, _, _, _, _, _, _, _, _ = variables
+    x, z, y, sigma, rho, phi, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     print("adding sequencing and fleet size constraints... ")
 
@@ -255,7 +267,7 @@ def passenger_flow_constraints(
     Passenger Flow Constraints
     """
 
-    x, _, _, _, _, _, h, lambd, _, _, _, _, _, _, _, beta = variables
+    x, _, _, _, _, _, h, lambd, _, _, _, _, _, _, _, beta, _, _, _ = variables
 
     print("adding passenger flow constraints...")
 
@@ -324,7 +336,7 @@ def airport_slot_constraints(
     Airport slot constraints
     """
 
-    _, z, _, _, _, _, _, _, _, deltaA, deltaD, vA, vD, _, _, _ = variables
+    _, z, _, _, _, _, _, _, _, deltaA, deltaD, vA, vD, _, _, _, _, _, _ = variables
 
     print("adding airport slot constraints...")
 
@@ -408,7 +420,7 @@ def flight_delay_constraints(
     Flight Delay Constraints
     """
 
-    x, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, gamma, _, _ = variables
+    x, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, gamma, _, _, _, _, _ = variables
 
     print("adding flight delay constraints...")
 
@@ -448,7 +460,7 @@ def itinerary_feasibility_constraints(
     to flight cancelations and due to flight retiming decisions, respectively.
     """
 
-    _, z, _, _, _, _, _, lambd, _, deltaA, deltaD, _, _, _, _, _ = variables
+    _, z, _, _, _, _, _, lambd, _, deltaA, deltaD, _, _, _, _, _, _, _, _ = variables
 
     print("adding itinerary feasibility constraints...")
 
@@ -485,7 +497,7 @@ def itinerary_delay_constraints(
     Itinerary Delay Constraints
     """
 
-    _, _, _, _, _, _, _, _, alpha, deltaA, _, _, _, _, tao, _ = variables
+    _, _, _, _, _, _, _, _, alpha, deltaA, _, _, _, _, tao, _, _, _, _ = variables
 
     print("adding itinerary delay constraints...")
 
@@ -532,7 +544,7 @@ def beta_linearizing_constraints(
     Constraints which allow beta to behave like alpha * h, while being linear
     """
 
-    _, _, _, _, _, _, h, _, alpha, _, _, _, _, _, _, beta = variables
+    _, _, _, _, _, _, h, _, alpha, _, _, _, _, _, _, beta, _, _, _ = variables
 
     print("adding beta linearizing constraints...")
 
@@ -566,6 +578,22 @@ def beta_linearizing_constraints(
         for p in P
         for pd in CO_p[P.index(p)]
         for g in Z
+    }
+
+
+def maintenance_schedule_constraints(
+    m: Model, variables: list[dict[list[int], Var]], T_m, sta, T_f, F
+) -> None:
+    """
+    Constraints which bound when maintenance can occur in the schedule
+    """
+
+    _, _, _, _, _, _, _, _, _, deltaA, _, _, _, _, _, _, imt, _, w = variables
+
+    msc_1 = {
+        (f, t): m.addConstr(imt[t] >= sta[f] + deltaA[f] - BIG_M * (1 - w[t, f]))
+        for f in F
+        for t in list(set(T_f[f]).intersection(T_m))
     }
 
 
@@ -603,12 +631,16 @@ def generate_output(
     CF_f,
     n,
     fc,
+    T_m,
 ) -> None:
-    x, z, y, sigma, rho, phi, h, lambd, _, deltaA, deltaD, vA, vD, _, _, _ = variables
+    
+    x, z, y, sigma,rho,phi,h,lambd,alpha,deltaA,deltaD,vA,vD,gamma,tao,beta,imt,fmt,w = variables
 
     chained_flights = {}
 
     print(60 * "-")
+
+    ## GENERAL FLIGHT / TAIL ASSIGNMENT PRINTS ##
     print("\nFlight Information:")
     for f in F:
         found_chained_flight = False
@@ -650,6 +682,7 @@ def generate_output(
             output += f"{DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)}) \t"
         print(output)
 
+    ## FLIGHT CANCELLATION PRINTS ##
     cancelled = False
     cancelled_count = 0
     print("\nCancelled Flights:")
@@ -660,9 +693,10 @@ def generate_output(
             cancelled_count += 1
     if not cancelled:
         print("No Flights Cancelled")
+    if cancelled:
+        print("\nTotal Flights Cancelled:", cancelled_count)
 
-    print("\nTotal Flights Cancelled:", cancelled_count)
-
+    ## DISRUPTED ITINERARY PRINTS ##
     disrupted_itins = False
     disrupted_passengers = 0
     disrupted_count = 0
@@ -673,28 +707,36 @@ def generate_output(
             disrupted_count += 1
             print(f"I{P.index(p)} disrupted.")
 
-    print("\nTotal Disrupted Itineraries:", disrupted_count)
-
     if not disrupted_itins:
         print("No Itineraries Disrupted")
+    if disrupted_itins:
+        print("\nTotal Disrupted Itineraries:", disrupted_count)
 
+    ## REASSIGNMENT PRINTS ##
+    reassignments = False
     print("\nPassenger Reassignments:")
     for p in P:
         for pd in P:
             for v in Y:
                 if p != pd:
                     if int(h[P.index(p), P.index(pd), v].x) > 0:
+                        reassignments = True
                         print(
                             f"    I{P.index(p)} {*P[P.index(p)],} -> I{P.index(pd)} {*P[P.index(pd)],} (FC: {v}) people reassigned: {int(h[P.index(p), P.index(pd), v].x)}"
                         )
                         disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
+    if not reassignments:
+        print("No Passenger Reassignments")
 
-    total_passengers = sum([n[v, P.index(p)] for v in Y for p in P])
-    print(f"\nTotal Reassigned Passengers: {disrupted_passengers}")
-    print(
-        f"Percentage of Passengers Reassigned: {round(disrupted_passengers/total_passengers*100,2)}%"
-    )
+    if reassignments:
+        total_passengers = sum([n[v, P.index(p)] for v in Y for p in P])
+        print(f"\nTotal Reassigned Passengers: {disrupted_passengers}")
+        print(
+            f"Percentage of Passengers Reassigned: {round(disrupted_passengers/total_passengers*100,2)}%"
+        )
 
+    ## FLIGHT DELAY PRINTS ##
+    delays = False
     print("\nFlight Delays:")
     for f in F:
         if z[f].x < 0.1:
@@ -706,7 +748,20 @@ def generate_output(
             if deltaD[f].x - deltaA[f].x > 1e-3:
                 out += f"-> Delay Absorbed: {round(deltaD[f].x - deltaA[f].x,2)}"
             if deltaA[f].x > 1e-5 or deltaD[f].x > 1e-5:
+                delays = True
                 print(out)
+
+    if not delays:
+        print("No Flight Delays")
+
+    ## MAINTENANCE PRINTS ##
+    maintenace = len(T_m) > 0
+    print("\nMaintenance Schedule:")
+    for t in T_m:
+        print("Tail", t, "Maintenance:", (imt[t].x, fmt[t].x))
+
+    if not maintenace:
+        print("No Maintenance Scheduled")
 
     print("\nTotal Cost: ", round(m.objVal, 2))
 

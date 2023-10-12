@@ -189,7 +189,7 @@ def test_basic_solve():
     )
     beta_linearizing_constraints(basic_solve, variables, Y, Z, P, CO_p)
     maintenance_schedule_constraints(basic_solve, variables, T_m, sta, T_f, F, F_t, mt, MO, std)
-    # workshop_schedule_constraints(basic_solve, variables)
+    workshop_schedule_constraints(basic_solve, variables)
 
 
     print("optimizing...")

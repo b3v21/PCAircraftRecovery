@@ -613,16 +613,16 @@ def maintenance_schedule_constraints(
     }
     
     
-# def workshop_schedule_constraints(
-#     m: Model, variables: list[dict[list[int], Var]]
-# ) -> None:
-#     """
-#     Constraints which manage the use of workshops for maintenance
-#     """
+def workshop_schedule_constraints(
+    m: Model, variables: list[dict[list[int], Var]]
+) -> None:
+    """
+    Constraints which manage the use of workshops for maintenance
+    """
     
-#     wsc_1 = {
+    wsc_1 = {
         
-#     }
+    }
     
 
 

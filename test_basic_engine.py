@@ -45,7 +45,15 @@ def test_basic_solve():
         for pi in PI
     }
     K_m = set([k for k in K])
-    T_m = set([0,2,4,6,8,])
+    T_m = set(
+        [
+            0,
+            2,
+            4,
+            6,
+            8,
+        ]
+    )
     PI_m = set([0])
 
     abh = {t: 5 for t in T}
@@ -152,7 +160,7 @@ def test_basic_solve():
     kappa = 100
     x_hat = {(f, t): 1 if t == f or t + 1 == f else 0 for f in F for t in T}
 
-    variables = generate_variables(basic_solve, T, F, Y, Z, P, AA, DA, CO_p)
+    variables = generate_variables(basic_solve, T, F, Y, Z, P, AA, DA, CO_p, K)
     set_objective(
         basic_solve,
         variables,
@@ -188,9 +196,10 @@ def test_basic_solve():
         basic_solve, variables, F, Z, P, sta, CO_p, lf, small_theta
     )
     beta_linearizing_constraints(basic_solve, variables, Y, Z, P, CO_p)
-    maintenance_schedule_constraints(basic_solve, variables, T_m, sta, T_f, F, F_t, mt, MO, std)
-    workshop_schedule_constraints(basic_solve, variables)
-
+    maintenance_schedule_constraints(
+        basic_solve, variables, T_m, sta, T_f, F, F_t, mt, MO, std
+    )
+    workshop_schedule_constraints(basic_solve, variables, F_t, T_m)
 
     print("optimizing...")
     basic_solve.optimize()
@@ -216,7 +225,7 @@ def test_basic_solve():
         T_m,
     )
 
-    _, z, _, _, _, _, _, lambd, _, _, _, _, _, _, _, _, _, _, _ = variables
+    _, z, _, _, _, _, _, lambd, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     # No flights cancelled and no itineraries disrupted
     for f in F:
@@ -411,7 +420,7 @@ def test_basic_reschedule_if_cheaper_tail():
         fc,
     )
 
-    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     # Ensure cheaper flight is being used.
     assert x[1, 0].x == 1
@@ -652,7 +661,7 @@ def test_basic_reschedule_if_plane_cap_too_small():
         fc,
     )
 
-    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     # Reassigns T0 -> T1 due to lack of capacity on T0.
     assert x[1, 0].x == 1

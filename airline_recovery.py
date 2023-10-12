@@ -4,15 +4,7 @@ BIG_M = 999999999
 
 
 def generate_variables(
-    m: Model,
-    T,
-    F,
-    Y,
-    Z,
-    P,
-    AA,
-    DA,
-    CO_p,
+    m: Model, T, F, Y, Z, P, AA, DA, CO_p, K
 ) -> list[dict[list[int], Var]]:
     """
     Generate variables for the model
@@ -92,6 +84,24 @@ def generate_variables(
     # One if tail t undergoes maintenance immediately after flight f and 0 otherwise
     w = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
 
+    # One if tail t is the last tail to undergo maintenance in the sequence of a workshop and 0 otherwise
+    sigma_m = {t: m.addVar(vtype=GRB.BINARY) for t in T}
+
+    # One if tail t is the first tail to undergo maintenance in the sequence of a workshop and 0 otherwise
+    rho_m = {t: m.addVar(vtype=GRB.BINARY) for t in T}
+
+    # One if tails t and td undergo maintenance consecutively in the sequence of a workshop and 0 otherwise
+    m_t = {(t, td): m.addVar(vtype=GRB.BINARY) for t in T for td in T if td != t}
+
+    # One if tails t and td undergo maintenance consecutively in the sequence of a workshop at the same airport k and 0 otherwise
+    m_m = {
+        (t, td, k): m.addVar(vtype=GRB.BINARY)
+        for t in T
+        for td in T
+        for k in K
+        if td != t
+    }
+
     return [
         x,
         z,
@@ -112,6 +122,10 @@ def generate_variables(
         imt,
         fmt,
         w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
     ]
 
 
@@ -138,7 +152,31 @@ def set_objective(
     Set the objective function for the model
     """
 
-    x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta, _, _, _ = variables
+    (
+        x,
+        _,
+        _,
+        _,
+        _,
+        _,
+        h,
+        _,
+        _,
+        deltaA,
+        _,
+        _,
+        _,
+        gamma,
+        _,
+        beta,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("setting objective...")
     m.setObjective(
@@ -184,7 +222,7 @@ def flight_scheduling_constraints(
     Flight Scheduling Constraints
     """
 
-    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     print("adding flight scheduling constraints...")
 
@@ -202,7 +240,31 @@ def sequencing_and_fleet_size_constraints(
     at all during the recovery period
     """
 
-    x, z, y, sigma, rho, phi, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    (
+        x,
+        z,
+        y,
+        sigma,
+        rho,
+        phi,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding sequencing and fleet size constraints... ")
 
@@ -267,7 +329,31 @@ def passenger_flow_constraints(
     Passenger Flow Constraints
     """
 
-    x, _, _, _, _, _, h, lambd, _, _, _, _, _, _, _, beta, _, _, _ = variables
+    (
+        x,
+        _,
+        _,
+        _,
+        _,
+        _,
+        h,
+        lambd,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        beta,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding passenger flow constraints...")
 
@@ -336,7 +422,31 @@ def airport_slot_constraints(
     Airport slot constraints
     """
 
-    _, z, _, _, _, _, _, _, _, deltaA, deltaD, vA, vD, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        vA,
+        vD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding airport slot constraints...")
 
@@ -420,7 +530,31 @@ def flight_delay_constraints(
     Flight Delay Constraints
     """
 
-    x, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, gamma, _, _, _, _, _ = variables
+    (
+        x,
+        _,
+        y,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        gamma,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding flight delay constraints...")
 
@@ -460,7 +594,31 @@ def itinerary_feasibility_constraints(
     to flight cancelations and due to flight retiming decisions, respectively.
     """
 
-    _, z, _, _, _, _, _, lambd, _, deltaA, deltaD, _, _, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        _,
+        lambd,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding itinerary feasibility constraints...")
 
@@ -497,7 +655,31 @@ def itinerary_delay_constraints(
     Itinerary Delay Constraints
     """
 
-    _, _, _, _, _, _, _, _, alpha, deltaA, _, _, _, _, tao, _, _, _, _ = variables
+    (
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        alpha,
+        deltaA,
+        _,
+        _,
+        _,
+        _,
+        tao,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding itinerary delay constraints...")
 
@@ -544,7 +726,31 @@ def beta_linearizing_constraints(
     Constraints which allow beta to behave like alpha * h, while being linear
     """
 
-    _, _, _, _, _, _, h, _, alpha, _, _, _, _, _, _, beta, _, _, _ = variables
+    (
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        h,
+        _,
+        alpha,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        beta,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding beta linearizing constraints...")
 
@@ -588,42 +794,93 @@ def maintenance_schedule_constraints(
     Constraints which bound when maintenance can occur in the schedule
     """
 
-    _, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, _, _, _, imt, fmt, w = variables
+    (
+        _,
+        _,
+        y,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        imt,
+        fmt,
+        w,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     msc_1 = {
         (f, t): m.addConstr(imt[t] >= sta[f] + deltaA[f] - BIG_M * (1 - w[t, f]))
         for f in F
         for t in list(set(T_f[f]).intersection(T_m))
     }
-    
+
     msc_2 = {
-        t : m.addConstr(imt[t] <= BIG_M * quicksum(w[t, f] for f in F_t[t]))
-        for t in T_m
+        t: m.addConstr(imt[t] <= BIG_M * quicksum(w[t, f] for f in F_t[t])) for t in T_m
     }
-    
+
     msc_3 = {
-        t : m.addConstr(fmt[t] == mt[t] * quicksum(w[t, f] for f in F_t[t]) + imt[t])
+        t: m.addConstr(fmt[t] == mt[t] * quicksum(w[t, f] for f in F_t[t]) + imt[t])
         for t in T_m
     }
-    
-    msc_4 = { (f, fd, t) : 
-        m.addConstr(fmt[t] <= std[fd] + deltaD[fd] + BIG_M * (1-y[f,fd]))
+
+    msc_4 = {
+        (f, fd, t): m.addConstr(fmt[t] <= std[fd] + deltaD[fd] + BIG_M * (1 - y[f, fd]))
         for (f, fd) in MO
         for t in list(set(T_f[f]).intersection(list(set(T_f[fd]))).intersection(T_m))
     }
-    
-    
+
+
 def workshop_schedule_constraints(
-    m: Model, variables: list[dict[list[int], Var]]
+    m: Model, variables: list[dict[list[int], Var]], F_t, T_m
 ) -> None:
     """
     Constraints which manage the use of workshops for maintenance
     """
-    
+    (
+        _,
+        _,
+        y,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        _,
+        m_t,
+        _,
+    ) = variables
+
     wsc_1 = {
-        
+        t: m.addConstr(
+            quicksum(m_t[t, td] for td in T_m if td != t) + sigma_m[t]
+            == quicksum(w[t, f] for f in F_t[t])
+        )
+        for t in T_m
     }
-    
 
 
 def generate_x_hat(m: Model, variables: list[dict[list[int], Var]], F, T):
@@ -662,8 +919,31 @@ def generate_output(
     fc,
     T_m,
 ) -> None:
-    
-    x, z, y, sigma,rho,phi,h,lambd,alpha,deltaA,deltaD,vA,vD,gamma,tao,beta,imt,fmt,w = variables
+    (
+        x,
+        z,
+        y,
+        sigma,
+        rho,
+        phi,
+        h,
+        lambd,
+        alpha,
+        deltaA,
+        deltaD,
+        vA,
+        vD,
+        gamma,
+        tao,
+        beta,
+        imt,
+        fmt,
+        w,
+        _,
+        _,
+        _,
+        _
+    ) = variables
 
     chained_flights = {}
 

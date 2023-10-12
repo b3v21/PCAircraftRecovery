@@ -582,19 +582,48 @@ def beta_linearizing_constraints(
 
 
 def maintenance_schedule_constraints(
-    m: Model, variables: list[dict[list[int], Var]], T_m, sta, T_f, F
+    m: Model, variables: list[dict[list[int], Var]], T_m, sta, T_f, F, F_t, mt, MO, std
 ) -> None:
     """
     Constraints which bound when maintenance can occur in the schedule
     """
 
-    _, _, _, _, _, _, _, _, _, deltaA, _, _, _, _, _, _, imt, _, w = variables
+    _, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, _, _, _, imt, fmt, w = variables
 
     msc_1 = {
         (f, t): m.addConstr(imt[t] >= sta[f] + deltaA[f] - BIG_M * (1 - w[t, f]))
         for f in F
         for t in list(set(T_f[f]).intersection(T_m))
     }
+    
+    msc_2 = {
+        t : m.addConstr(imt[t] <= BIG_M * quicksum(w[t, f] for f in F_t[t]))
+        for t in T_m
+    }
+    
+    msc_3 = {
+        t : m.addConstr(fmt[t] == mt[t] * quicksum(w[t, f] for f in F_t[t]) + imt[t])
+        for t in T_m
+    }
+    
+    msc_4 = { (f, fd, t) : 
+        m.addConstr(fmt[t] <= std[fd] + deltaD[fd] + BIG_M * (1-y[f,fd]))
+        for (f, fd) in MO
+        for t in list(set(T_f[f]).intersection(list(set(T_f[fd]))).intersection(T_m))
+    }
+    
+    
+# def workshop_schedule_constraints(
+#     m: Model, variables: list[dict[list[int], Var]]
+# ) -> None:
+#     """
+#     Constraints which manage the use of workshops for maintenance
+#     """
+    
+#     wsc_1 = {
+        
+#     }
+    
 
 
 def generate_x_hat(m: Model, variables: list[dict[list[int], Var]], F, T):
@@ -763,7 +792,7 @@ def generate_output(
     if not maintenace:
         print("No Maintenance Scheduled")
 
-    print("\nTotal Cost: ", round(m.objVal, 2))
+    print("\nTotal Cost:", round(m.objVal, 2))
 
     print("\n" + 60 * "-")
 

@@ -39,19 +39,19 @@ def test_basic_solve():
 
     # MAINTENANCE DATA / SETS
     PI = range(num_time_instances)
-    MO = set([(f, fd) for f in F for fd in F])
+    MO = set([(f, fd) for f in F for fd in F if f != fd])
     F_pi = {
         pi: [f for f in F if sta[f] <= (1 + pi) * (TIME_HORIZON / num_time_instances)]
         for pi in PI
     }
     K_m = set([k for k in K])
-    T_m = set([0])
+    T_m = set([0,2,4,6,8,])
     PI_m = set([0])
 
     abh = {t: 5 for t in T}
     sbh = {f: 5 for f in F}
     mbh = {t: 40 for t in T}
-    mt = {t: 8 for t in T}
+    mt = {t: 1 for t in T}
     aw = {k: 1 for k in K}
 
     DA = [(f, f + 1) for f in F]
@@ -188,7 +188,9 @@ def test_basic_solve():
         basic_solve, variables, F, Z, P, sta, CO_p, lf, small_theta
     )
     beta_linearizing_constraints(basic_solve, variables, Y, Z, P, CO_p)
-    maintenance_schedule_constraints(basic_solve, variables, T_m, sta, T_f, F)
+    maintenance_schedule_constraints(basic_solve, variables, T_m, sta, T_f, F, F_t, mt, MO, std)
+    # workshop_schedule_constraints(basic_solve, variables)
+
 
     print("optimizing...")
     basic_solve.optimize()

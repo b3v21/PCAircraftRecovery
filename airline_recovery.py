@@ -102,6 +102,9 @@ def generate_variables(
         if td != t
     }
 
+    # One if tail t is the first one undergoing maintenance in a workshop and it does so immediately after flying flight f
+    phi_m = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
+
     return [
         x,
         z,
@@ -126,6 +129,7 @@ def generate_variables(
         rho_m,
         m_t,
         m_m,
+        phi_m,
     ]
 
 
@@ -169,6 +173,7 @@ def set_objective(
         gamma,
         _,
         beta,
+        _,
         _,
         _,
         _,
@@ -222,7 +227,7 @@ def flight_scheduling_constraints(
     Flight Scheduling Constraints
     """
 
-    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     print("adding flight scheduling constraints...")
 
@@ -247,6 +252,7 @@ def sequencing_and_fleet_size_constraints(
         sigma,
         rho,
         phi,
+        _,
         _,
         _,
         _,
@@ -353,6 +359,7 @@ def passenger_flow_constraints(
         _,
         _,
         _,
+        _,
     ) = variables
 
     print("adding passenger flow constraints...")
@@ -436,6 +443,7 @@ def airport_slot_constraints(
         deltaD,
         vA,
         vD,
+        _,
         _,
         _,
         _,
@@ -554,6 +562,7 @@ def flight_delay_constraints(
         _,
         _,
         _,
+        _,
     ) = variables
 
     print("adding flight delay constraints...")
@@ -606,6 +615,7 @@ def itinerary_feasibility_constraints(
         _,
         deltaA,
         deltaD,
+        _,
         _,
         _,
         _,
@@ -671,6 +681,7 @@ def itinerary_delay_constraints(
         _,
         _,
         tao,
+        _,
         _,
         _,
         _,
@@ -750,6 +761,7 @@ def beta_linearizing_constraints(
         _,
         _,
         _,
+        _,
     ) = variables
 
     print("adding beta linearizing constraints...")
@@ -794,6 +806,8 @@ def maintenance_schedule_constraints(
     Constraints which bound when maintenance can occur in the schedule
     """
 
+    print("adding maintenance scheduling constraints...")
+
     (
         _,
         _,
@@ -818,6 +832,7 @@ def maintenance_schedule_constraints(
         _,
         _,
         _,
+        _,
     ) = variables
 
     msc_1 = {
@@ -834,6 +849,11 @@ def maintenance_schedule_constraints(
         t: m.addConstr(fmt[t] == mt[t] * quicksum(w[t, f] for f in F_t[t]) + imt[t])
         for t in T_m
     }
+    
+    # msc_3 = {
+    #     t: m.addConstr(fmt[t] == mt[t] * quicksum(w[t, f] + imt[t] for f in F_t[t]))
+    #     for t in T_m
+    # }
 
     msc_4 = {
         (f, fd, t): m.addConstr(fmt[t] <= std[fd] + deltaD[fd] + BIG_M * (1 - y[f, fd]))
@@ -843,11 +863,13 @@ def maintenance_schedule_constraints(
 
 
 def workshop_schedule_constraints(
-    m: Model, variables: list[dict[list[int], Var]], F_t, T_m
+    m: Model, variables: list[dict[list[int], Var]], F_t, T_m, K_m, F, T_f, K, aw, FA_k
 ) -> None:
     """
     Constraints which manage the use of workshops for maintenance
     """
+    print("adding workshop scheduling constraints...")
+
     (
         _,
         _,
@@ -869,9 +891,10 @@ def workshop_schedule_constraints(
         fmt,
         w,
         sigma_m,
-        _,
+        rho_m,
         m_t,
-        _,
+        m_m,
+        phi_m,
     ) = variables
 
     wsc_1 = {
@@ -882,6 +905,125 @@ def workshop_schedule_constraints(
         for t in T_m
     }
 
+    wsc_2 = {
+        td: m.addConstr(
+            quicksum(m_t[t, td] for t in T_m if td != t) + rho_m[td]
+            == quicksum(w[td, f] for f in F_t[td])
+        )
+        for td in T_m
+    }
+
+    wsc_3 = {
+        (t, td): m.addConstr(imt[td] >= fmt[t] - BIG_M * (1 - m_t[t, td]))
+        for t in T_m
+        for td in T_m
+        if td != t
+    }
+
+    wsc_4 = {
+        (k, t, td): m.addConstr(
+            2 * m_m[t, td, k]
+            <= quicksum(
+                (w[t, f] + w[td, fd])
+                for f in list(set(F_t[t]).intersection(FA_k[k]))
+                for fd in list(set(F_t[td]).intersection(FA_k[k]))
+            )
+        )
+        for k in K_m
+        for t in T_m
+        for td in T_m
+        if td != t
+    }
+
+    wsc_5 = {
+        (t, td): m.addConstr(m_t[t, td] == quicksum(m_m[t, td, k] for k in K_m))
+        for t in T_m
+        for td in T_m
+        if td != t
+    }
+
+    wsc_6 = {
+        (f, t): m.addConstr(rho_m[t] + w[t, f] <= 1 + phi_m[t, f])
+        for f in F
+        for t in list(set(T_f[f]).intersection(T_m))
+    }
+
+    wsc_7 = {
+        k: m.addConstr(
+            quicksum(
+                phi_m[t, f]
+                for t in T_m
+                for f in list(set(F_t[t]).intersection(FA_k[k]))
+            )
+            <= aw[k]
+        )
+        for k in K
+    }
+
+
+def maintenance_check_constraints(
+    m: Model, variables: list[dict[list[int], Var]], T_m, PI_m, F_pi, sbh, mbh, F_t, MO, abh, F, T_f
+) -> None:
+    """
+    Constraints which manage maintenance checks
+    """
+    print("adding maintenance check constraints...")
+
+    (
+        x,
+        _,
+        y,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
+    ) = variables
+
+    mcc_1 = {
+        (t, pi): m.addConstr(
+            abh[t]
+            >= quicksum(
+                sbh[f] * x[t, f] for f in list(set(F_t[t]).intersection(F_pi[pi]))
+            )
+            - quicksum(
+                mbh[t] * w[t, f] for f in list(set(F_t[t]).intersection(F_pi[pi]))
+            )
+        )
+        for t in T_m
+        for pi in PI_m
+    }
+
+    mcc_2 = {
+        (f, t): m.addConstr(w[t, f] <= x[t, f])
+        for f in F
+        for t in list(set(T_f[f]).intersection(T_m))
+    }
+
+    mcc_3 = {
+        (f, t): m.addConstr(
+            w[t, f] <= quicksum(y[f, fd] for fd in F if (f, fd) in MO and t in T_f[fd])
+        )
+        for f in F
+        for t in list(set(T_f[f]).intersection(T_m))
+    }
+
 
 def generate_x_hat(m: Model, variables: list[dict[list[int], Var]], F, T):
     """
@@ -889,7 +1031,7 @@ def generate_x_hat(m: Model, variables: list[dict[list[int], Var]], F, T):
     second optimization
     """
 
-    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     x_hat = {}
 
@@ -942,7 +1084,8 @@ def generate_output(
         _,
         _,
         _,
-        _
+        _,
+        _,
     ) = variables
 
     chained_flights = {}

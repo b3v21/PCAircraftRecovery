@@ -45,21 +45,13 @@ def test_basic_solve():
         for pi in PI
     }
     K_m = set([k for k in K])
-    T_m = set(
-        [
-            0,
-            2,
-            4,
-            6,
-            8,
-        ]
-    )
-    PI_m = set([0])
+    T_m = set([])
+    PI_m = set([0,1])
 
-    abh = {t: 5 for t in T}
-    sbh = {f: 5 for f in F}
+    abh = {t: 20 for t in T}
+    sbh = {f: 20 for f in F}
     mbh = {t: 40 for t in T}
-    mt = {t: 1 for t in T}
+    mt = {t: 0.5 for t in T}
     aw = {k: 1 for k in K}
 
     DA = [(f, f + 1) for f in F]
@@ -199,7 +191,12 @@ def test_basic_solve():
     maintenance_schedule_constraints(
         basic_solve, variables, T_m, sta, T_f, F, F_t, mt, MO, std
     )
-    workshop_schedule_constraints(basic_solve, variables, F_t, T_m)
+    workshop_schedule_constraints(
+        basic_solve, variables, F_t, T_m, K_m, F, T_f, K, aw, FA_k
+    )
+    maintenance_check_constraints(
+        basic_solve, variables, T_m, PI_m, F_pi, sbh, mbh, F_t, MO, abh, F, T_f
+    )
 
     print("optimizing...")
     basic_solve.optimize()
@@ -225,7 +222,32 @@ def test_basic_solve():
         T_m,
     )
 
-    _, z, _, _, _, _, _, lambd, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        _,
+        lambd,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     # No flights cancelled and no itineraries disrupted
     for f in F:

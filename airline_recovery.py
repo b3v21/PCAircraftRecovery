@@ -298,14 +298,14 @@ def sequencing_and_fleet_size_constraints(
         (f, fd, t): m.addConstr(1 + x[t, fd] >= x[t, f] + y[f, fd])
         for f in F
         for fd in CF_f[f]
-        for t in list(set(T_f[f]).intersection(T_f[fd]))
+        for t in set(T_f[f]).intersection(T_f[fd])
     }
 
     sfsc_4 = {
         (f, fd, t): m.addConstr(1 + x[t, f] >= x[t, fd] + y[f, fd])
         for f in F
         for fd in CF_f[f]
-        for t in list(set(T_f[f]).intersection(T_f[fd]))
+        for t in set(T_f[f]).intersection(T_f[fd])
     }
 
     # If a flight is assigned a tail and it is the first flight in a sequence of flights,
@@ -320,8 +320,7 @@ def sequencing_and_fleet_size_constraints(
     # to tails whose initial location matches the flight's departure airport
     sfsc_6 = {
         (t, k): m.addConstr(
-            quicksum(phi[t, f] for f in list(set(F_t[t]).intersection(FD_k[k])))
-            <= tb[t, k]
+            quicksum(phi[t, f] for f in set(F_t[t]).intersection(FD_k[k])) <= tb[t, k]
         )
         for t in T
         for k in K
@@ -584,7 +583,7 @@ def flight_delay_constraints(
         )
         for f in F
         for fd in CF_f[f]
-        for t in list(set(T_f[f]).intersection(set(T_f[fd])))
+        for t in set(T_f[f]).intersection(set(T_f[fd]))
     }
 
 
@@ -838,7 +837,7 @@ def maintenance_schedule_constraints(
     msc_1 = {
         (f, t): m.addConstr(imt[t] >= sta[f] + deltaA[f] - BIG_M * (1 - w[t, f]))
         for f in F
-        for t in list(set(T_f[f]).intersection(T_m))
+        for t in set(T_f[f]).intersection(T_m)
     }
 
     msc_2 = {
@@ -849,16 +848,11 @@ def maintenance_schedule_constraints(
         t: m.addConstr(fmt[t] == mt[t] * quicksum(w[t, f] for f in F_t[t]) + imt[t])
         for t in T_m
     }
-    
-    # msc_3 = {
-    #     t: m.addConstr(fmt[t] == mt[t] * quicksum(w[t, f] + imt[t] for f in F_t[t]))
-    #     for t in T_m
-    # }
 
     msc_4 = {
         (f, fd, t): m.addConstr(fmt[t] <= std[fd] + deltaD[fd] + BIG_M * (1 - y[f, fd]))
         for (f, fd) in MO
-        for t in list(set(T_f[f]).intersection(list(set(T_f[fd]))).intersection(T_m))
+        for t in set(T_f[f]).intersection(set(T_f[fd])).intersection(T_m)
     }
 
 
@@ -925,8 +919,8 @@ def workshop_schedule_constraints(
             2 * m_m[t, td, k]
             <= quicksum(
                 (w[t, f] + w[td, fd])
-                for f in list(set(F_t[t]).intersection(FA_k[k]))
-                for fd in list(set(F_t[td]).intersection(FA_k[k]))
+                for f in set(F_t[t]).intersection(FA_k[k])
+                for fd in set(F_t[td]).intersection(FA_k[k])
             )
         )
         for k in K_m
@@ -945,15 +939,13 @@ def workshop_schedule_constraints(
     wsc_6 = {
         (f, t): m.addConstr(rho_m[t] + w[t, f] <= 1 + phi_m[t, f])
         for f in F
-        for t in list(set(T_f[f]).intersection(T_m))
+        for t in set(T_f[f]).intersection(T_m)
     }
 
     wsc_7 = {
         k: m.addConstr(
             quicksum(
-                phi_m[t, f]
-                for t in T_m
-                for f in list(set(F_t[t]).intersection(FA_k[k]))
+                phi_m[t, f] for t in T_m for f in set(F_t[t]).intersection(FA_k[k])
             )
             <= aw[k]
         )
@@ -962,7 +954,18 @@ def workshop_schedule_constraints(
 
 
 def maintenance_check_constraints(
-    m: Model, variables: list[dict[list[int], Var]], T_m, PI_m, F_pi, sbh, mbh, F_t, MO, abh, F, T_f
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    T_m,
+    PI_m,
+    F_pi,
+    sbh,
+    mbh,
+    F_t,
+    MO,
+    abh,
+    F,
+    T_f,
 ) -> None:
     """
     Constraints which manage maintenance checks
@@ -999,12 +1002,8 @@ def maintenance_check_constraints(
     mcc_1 = {
         (t, pi): m.addConstr(
             abh[t]
-            >= quicksum(
-                sbh[f] * x[t, f] for f in list(set(F_t[t]).intersection(F_pi[pi]))
-            )
-            - quicksum(
-                mbh[t] * w[t, f] for f in list(set(F_t[t]).intersection(F_pi[pi]))
-            )
+            >= quicksum(sbh[f] * x[t, f] for f in set(F_t[t]).intersection(F_pi[pi]))
+            - quicksum(mbh[t] * w[t, f] for f in set(F_t[t]).intersection(F_pi[pi]))
         )
         for t in T_m
         for pi in PI_m
@@ -1013,7 +1012,7 @@ def maintenance_check_constraints(
     mcc_2 = {
         (f, t): m.addConstr(w[t, f] <= x[t, f])
         for f in F
-        for t in list(set(T_f[f]).intersection(T_m))
+        for t in set(T_f[f]).intersection(T_m)
     }
 
     mcc_3 = {
@@ -1021,7 +1020,7 @@ def maintenance_check_constraints(
             w[t, f] <= quicksum(y[f, fd] for fd in F if (f, fd) in MO and t in T_f[fd])
         )
         for f in F
-        for t in list(set(T_f[f]).intersection(T_m))
+        for t in set(T_f[f]).intersection(T_m)
     }
 
 
@@ -1211,6 +1210,9 @@ def generate_output(
     print("\nMaintenance Schedule:")
     for t in T_m:
         print("Tail", t, "Maintenance:", (imt[t].x, fmt[t].x))
+        for f in F:
+            if w[t, f].x > 0.9:
+                print(f"    F{f} has maintenance scheduled after it")
 
     if not maintenace:
         print("No Maintenance Scheduled")

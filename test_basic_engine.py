@@ -919,7 +919,7 @@ def test_basic_maintenance():
     num_airports = 3
     num_fare_classes = 2
     num_delay_levels = 2
-    num_time_instances = 8
+    num_time_instances = 2
 
     T = range(num_tails)
     F = range(num_flights)
@@ -933,20 +933,22 @@ def test_basic_maintenance():
 
     # MAINTENANCE DATA / SETS
     PI = range(num_time_instances)
-    MO = set([(f, fd) for f in F for fd in F if f != fd])
+    MO = set([(f, fd) for f in F for fd in F if std[f] < std[fd]])
     F_pi = {
         pi: [f for f in F if sta[f] <= (1 + pi) * (TIME_HORIZON / num_time_instances)]
         for pi in PI
     }
-    K_m = set([k for k in K])
+    K_m = {1}
     T_m = set(T)
-    PI_m = set([0, 1])
+    PI_m = set(PI)
 
-    abh = {t: 20 for t in T}
-    sbh = {f: 20 for f in F}
-    mbh = {t: 40 for t in T}
-    mt = {t: 1 for t in T}
-    aw = {k: 1 for k in K}
+    abh = {0: 0.5}
+    sbh = {0: 25, 1: (72 - 35.5)}
+    mbh = {
+        0: 14 * 24
+    }  # DOESN'T MATTER FOR THIS TEST BECAUSE ONLY ONE MAINTENANCE OPPORTUNITY.
+    mt = {0: 15}
+    aw = {0: 0, 1: 1000, 2: 0}
 
     DA = [(0, 1), (30, 31)]
     AA = [(5, 6), (35, 36)]

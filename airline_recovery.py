@@ -76,10 +76,10 @@ def generate_variables(
     }
 
     # Starting time of maintenance operations for tail t
-    imt = {t: m.addVar(vtype=GRB.BINARY) for t in T}
+    imt = {t: m.addVar() for t in T}
 
     # Ending time of maintenance operations for tail t
-    fmt = {t: m.addVar(vtype=GRB.BINARY) for t in T}
+    fmt = {t: m.addVar() for t in T}
 
     # One if tail t undergoes maintenance immediately after flight f and 0 otherwise
     w = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
@@ -1002,8 +1002,10 @@ def maintenance_check_constraints(
     mcc_1 = {
         (t, pi): m.addConstr(
             abh[t]
-            >= quicksum(sbh[f] * x[t, f] for f in set(F_t[t]).intersection(F_pi[pi]))
-            - quicksum(mbh[t] * w[t, f] for f in set(F_t[t]).intersection(F_pi[pi]))
+            >= quicksum(
+                sbh[f] * x[t, f] - mbh[t] * w[t, f]
+                for f in set(F_t[t]).intersection(F_pi[pi])
+            )
         )
         for t in T_m
         for pi in PI_m
@@ -1080,11 +1082,11 @@ def generate_output(
         imt,
         fmt,
         w,
-        _,
-        _,
-        _,
-        _,
-        _,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
     ) = variables
 
     chained_flights = {}
@@ -1210,9 +1212,6 @@ def generate_output(
     print("\nMaintenance Schedule:")
     for t in T_m:
         print("Tail", t, "Maintenance:", (imt[t].x, fmt[t].x))
-        for f in F:
-            if w[t, f].x > 0.9:
-                print(f"    F{f} has maintenance scheduled after it")
 
     if not maintenace:
         print("No Maintenance Scheduled")

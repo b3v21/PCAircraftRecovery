@@ -24,6 +24,7 @@ def build_base_data() -> tuple:
     num_airports = 10
     num_fare_classes = 4  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
+    num_time_instances = 8
 
     # Sets
     T = range(num_tails)
@@ -31,6 +32,8 @@ def build_base_data() -> tuple:
     K = AIRPORTS
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
+    
+    T_m = set()
 
     # RUN IF YOU WANT TO GENERATE ITINERARIES WITH NEW ITIN_CLASSES
     # itin_classes = {1: num_flights, 2: 20, 3: 5}
@@ -268,6 +271,33 @@ def build_base_data() -> tuple:
             tail_count += 1
             if tail_count == num_tails:
                 break
+            
+    # Create Maintenance data / sets
+    PI = range(num_time_instances)
+    MO = set(
+        [
+            (f, fd)
+            for f in F
+            for fd in F
+            if std[f] < std[fd]
+            and AK_f[f] == DK_f[fd]
+            and (AK_f[f] == "SYD" or AK_f[f] == "BNE")
+        ]
+    )
+    F_pi = {
+        pi: [f for f in F if sta[f] <= (1 + pi) * (TIME_HORIZON / num_time_instances)]
+        for pi in PI
+    }
+    K_m = {"SYD", "BNE"}
+    T_m = set()
+    PI_m = set(PI)
+
+    abh = {t: TIME_HORIZON for t in T}
+    sbh = {f: TIME_HORIZON for f in F}
+
+    mbh = {t: 14 * 24 for t in T}
+    mt = {t: 12 for t in T}
+    aw = {k: (lambda k: 5 if k == "SYD" or k == "BNE" else 0)(k) for k in K}
 
     print("remaining data created")
 
@@ -314,6 +344,17 @@ def build_base_data() -> tuple:
         kappa,
         x_hat,
         tb,
+        PI,
+        MO,
+        F_pi,
+        K_m,
+        T_m,
+        PI_m,
+        abh,
+        sbh,
+        mbh,
+        mt,
+        aw,
     )
 
 
@@ -364,9 +405,20 @@ def test_psuedo_aus_medium_size():
         kappa,
         x_hat,
         tb,
+        PI,
+        MO,
+        F_pi,
+        K_m,
+        T_m,
+        PI_m,
+        abh,
+        sbh,
+        mbh,
+        mt,
+        aw,
     ) = build_base_data()
 
-    variables = generate_variables(m, T, F, Y, Z, P, AA, DA, CO_p)
+    variables = generate_variables(m, T, F, Y, Z, P, AA, DA, CO_p, K)
     set_objective(
         m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
     )
@@ -416,5 +468,5 @@ def test_psuedo_aus_medium_size():
 
     print("generating output...")
     generate_output(
-        m, variables, T, F, Y, Z, P, sta, std, AA, DA, DK_f, AK_f, CF_f, n, fc
+        m, variables, T, F, Y, Z, P, sta, std, AA, DA, DK_f, AK_f, CF_f, n, fc, T_m
     )

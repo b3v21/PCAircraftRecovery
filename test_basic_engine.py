@@ -944,9 +944,7 @@ def test_basic_maintenance():
 
     abh = {0: 0.5}
     sbh = {0: 25, 1: (72 - 35.5)}
-    mbh = {
-        0: 14 * 24
-    }  # DOESN'T MATTER FOR THIS TEST BECAUSE ONLY ONE MAINTENANCE OPPORTUNITY.
+    mbh = {0: 14 * 24}
     mt = {0: 15}
     aw = {0: 0, 1: 1000, 2: 0}
 

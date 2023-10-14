@@ -4,15 +4,7 @@ BIG_M = 999999999
 
 
 def generate_variables(
-    m: Model,
-    T,
-    F,
-    Y,
-    Z,
-    P,
-    AA,
-    DA,
-    CO_p,
+    m: Model, T, F, Y, Z, P, AA, DA, CO_p, K
 ) -> list[dict[list[int], Var]]:
     """
     Generate variables for the model
@@ -83,6 +75,36 @@ def generate_variables(
         for g in Z
     }
 
+    # Starting time of maintenance operations for tail t
+    imt = {t: m.addVar() for t in T}
+
+    # Ending time of maintenance operations for tail t
+    fmt = {t: m.addVar() for t in T}
+
+    # One if tail t undergoes maintenance immediately after flight f and 0 otherwise
+    w = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
+
+    # One if tail t is the last tail to undergo maintenance in the sequence of a workshop and 0 otherwise
+    sigma_m = {t: m.addVar(vtype=GRB.BINARY) for t in T}
+
+    # One if tail t is the first tail to undergo maintenance in the sequence of a workshop and 0 otherwise
+    rho_m = {t: m.addVar(vtype=GRB.BINARY) for t in T}
+
+    # One if tails t and td undergo maintenance consecutively in the sequence of a workshop and 0 otherwise
+    m_t = {(t, td): m.addVar(vtype=GRB.BINARY) for t in T for td in T if td != t}
+
+    # One if tails t and td undergo maintenance consecutively in the sequence of a workshop at the same airport k and 0 otherwise
+    m_m = {
+        (t, td, k): m.addVar(vtype=GRB.BINARY)
+        for t in T
+        for td in T
+        for k in K
+        if td != t
+    }
+
+    # One if tail t is the first one undergoing maintenance in a workshop and it does so immediately after flying flight f
+    phi_m = {(t, f): m.addVar(vtype=GRB.BINARY) for t in T for f in F}
+
     return [
         x,
         z,
@@ -100,6 +122,14 @@ def generate_variables(
         gamma,
         tao,
         beta,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
     ]
 
 
@@ -126,7 +156,32 @@ def set_objective(
     Set the objective function for the model
     """
 
-    x, _, _, _, _, _, h, _, _, deltaA, _, _, _, gamma, _, beta = variables
+    (
+        x,
+        _,
+        _,
+        _,
+        _,
+        _,
+        h,
+        _,
+        _,
+        deltaA,
+        _,
+        _,
+        _,
+        gamma,
+        _,
+        beta,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("setting objective...")
     m.setObjective(
@@ -172,7 +227,7 @@ def flight_scheduling_constraints(
     Flight Scheduling Constraints
     """
 
-    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    x, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     print("adding flight scheduling constraints...")
 
@@ -190,7 +245,32 @@ def sequencing_and_fleet_size_constraints(
     at all during the recovery period
     """
 
-    x, z, y, sigma, rho, phi, _, _, _, _, _, _, _, _, _, _ = variables
+    (
+        x,
+        z,
+        y,
+        sigma,
+        rho,
+        phi,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding sequencing and fleet size constraints... ")
 
@@ -218,14 +298,14 @@ def sequencing_and_fleet_size_constraints(
         (f, fd, t): m.addConstr(1 + x[t, fd] >= x[t, f] + y[f, fd])
         for f in F
         for fd in CF_f[f]
-        for t in list(set(T_f[f]).intersection(T_f[fd]))
+        for t in set(T_f[f]).intersection(T_f[fd])
     }
 
     sfsc_4 = {
         (f, fd, t): m.addConstr(1 + x[t, f] >= x[t, fd] + y[f, fd])
         for f in F
         for fd in CF_f[f]
-        for t in list(set(T_f[f]).intersection(T_f[fd]))
+        for t in set(T_f[f]).intersection(T_f[fd])
     }
 
     # If a flight is assigned a tail and it is the first flight in a sequence of flights,
@@ -240,8 +320,7 @@ def sequencing_and_fleet_size_constraints(
     # to tails whose initial location matches the flight's departure airport
     sfsc_6 = {
         (t, k): m.addConstr(
-            quicksum(phi[t, f] for f in list(set(F_t[t]).intersection(FD_k[k])))
-            <= tb[t, k]
+            quicksum(phi[t, f] for f in set(F_t[t]).intersection(FD_k[k])) <= tb[t, k]
         )
         for t in T
         for k in K
@@ -255,7 +334,32 @@ def passenger_flow_constraints(
     Passenger Flow Constraints
     """
 
-    x, _, _, _, _, _, h, lambd, _, _, _, _, _, _, _, beta = variables
+    (
+        x,
+        _,
+        _,
+        _,
+        _,
+        _,
+        h,
+        lambd,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        beta,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding passenger flow constraints...")
 
@@ -324,7 +428,32 @@ def airport_slot_constraints(
     Airport slot constraints
     """
 
-    _, z, _, _, _, _, _, _, _, deltaA, deltaD, vA, vD, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        vA,
+        vD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding airport slot constraints...")
 
@@ -408,7 +537,32 @@ def flight_delay_constraints(
     Flight Delay Constraints
     """
 
-    x, _, y, _, _, _, _, _, _, deltaA, deltaD, _, _, gamma, _, _ = variables
+    (
+        x,
+        _,
+        y,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        gamma,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding flight delay constraints...")
 
@@ -429,7 +583,7 @@ def flight_delay_constraints(
         )
         for f in F
         for fd in CF_f[f]
-        for t in list(set(T_f[f]).intersection(set(T_f[fd])))
+        for t in set(T_f[f]).intersection(set(T_f[fd]))
     }
 
 
@@ -448,7 +602,32 @@ def itinerary_feasibility_constraints(
     to flight cancelations and due to flight retiming decisions, respectively.
     """
 
-    _, z, _, _, _, _, _, lambd, _, deltaA, deltaD, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        _,
+        lambd,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding itinerary feasibility constraints...")
 
@@ -485,7 +664,32 @@ def itinerary_delay_constraints(
     Itinerary Delay Constraints
     """
 
-    _, _, _, _, _, _, _, _, alpha, deltaA, _, _, _, _, tao, _ = variables
+    (
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        alpha,
+        deltaA,
+        _,
+        _,
+        _,
+        _,
+        tao,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding itinerary delay constraints...")
 
@@ -532,7 +736,32 @@ def beta_linearizing_constraints(
     Constraints which allow beta to behave like alpha * h, while being linear
     """
 
-    _, _, _, _, _, _, h, _, alpha, _, _, _, _, _, _, beta = variables
+    (
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        h,
+        _,
+        alpha,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        beta,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     print("adding beta linearizing constraints...")
 
@@ -569,13 +798,241 @@ def beta_linearizing_constraints(
     }
 
 
+def maintenance_schedule_constraints(
+    m: Model, variables: list[dict[list[int], Var]], T_m, sta, T_f, F, F_t, mt, MO, std
+) -> None:
+    """
+    Constraints which bound when maintenance can occur in the schedule
+    """
+
+    print("adding maintenance scheduling constraints...")
+
+    (
+        _,
+        _,
+        y,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        imt,
+        fmt,
+        w,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
+
+    msc_1 = {
+        (f, t): m.addConstr(imt[t] >= sta[f] + deltaA[f] - BIG_M * (1 - w[t, f]))
+        for f in F
+        for t in set(T_f[f]).intersection(T_m)
+    }
+
+    msc_2 = {
+        t: m.addConstr(imt[t] <= BIG_M * quicksum(w[t, f] for f in F_t[t])) for t in T_m
+    }
+
+    msc_3 = {
+        t: m.addConstr(fmt[t] == mt[t] * quicksum(w[t, f] for f in F_t[t]) + imt[t])
+        for t in T_m
+    }
+
+    msc_4 = {
+        (f, fd, t): m.addConstr(fmt[t] <= std[fd] + deltaD[fd] + BIG_M * (1 - y[f, fd]))
+        for (f, fd) in MO
+        for t in set(T_f[f]).intersection(set(T_f[fd])).intersection(T_m)
+    }
+
+
+def workshop_schedule_constraints(
+    m: Model, variables: list[dict[list[int], Var]], F_t, T_m, K_m, F, T_f, K, aw, FA_k
+) -> None:
+    """
+    Constraints which manage the use of workshops for maintenance
+    """
+    print("adding workshop scheduling constraints...")
+
+    (
+        _,
+        _,
+        y,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
+    ) = variables
+
+    wsc_1 = {
+        t: m.addConstr(
+            quicksum(m_t[t, td] for td in T_m if td != t) + sigma_m[t]
+            == quicksum(w[t, f] for f in F_t[t])
+        )
+        for t in T_m
+    }
+
+    wsc_2 = {
+        td: m.addConstr(
+            quicksum(m_t[t, td] for t in T_m if td != t) + rho_m[td]
+            == quicksum(w[td, f] for f in F_t[td])
+        )
+        for td in T_m
+    }
+
+    wsc_3 = {
+        (t, td): m.addConstr(imt[td] >= fmt[t] - BIG_M * (1 - m_t[t, td]))
+        for t in T_m
+        for td in T_m
+        if td != t
+    }
+
+    wsc_4 = {
+        (k, t, td): m.addConstr(
+            2 * m_m[t, td, k]
+            <= quicksum(
+                (w[t, f] + w[td, fd])
+                for f in set(F_t[t]).intersection(FA_k[k])
+                for fd in set(F_t[td]).intersection(FA_k[k])
+            )
+        )
+        for k in K_m
+        for t in T_m
+        for td in T_m
+        if td != t
+    }
+
+    wsc_5 = {
+        (t, td): m.addConstr(m_t[t, td] == quicksum(m_m[t, td, k] for k in K_m))
+        for t in T_m
+        for td in T_m
+        if td != t
+    }
+
+    wsc_6 = {
+        (f, t): m.addConstr(rho_m[t] + w[t, f] <= 1 + phi_m[t, f])
+        for f in F
+        for t in set(T_f[f]).intersection(T_m)
+    }
+
+    wsc_7 = {
+        k: m.addConstr(
+            quicksum(
+                phi_m[t, f] for t in T_m for f in set(F_t[t]).intersection(FA_k[k])
+            )
+            <= aw[k]
+        )
+        for k in K
+    }
+
+
+def maintenance_check_constraints(
+    m: Model,
+    variables: list[dict[list[int], Var]],
+    T_m,
+    PI_m,
+    F_pi,
+    sbh,
+    mbh,
+    F_t,
+    MO,
+    abh,
+    F,
+    T_f,
+) -> None:
+    """
+    Constraints which manage maintenance checks
+    """
+    print("adding maintenance check constraints...")
+
+    (
+        x,
+        _,
+        y,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
+    ) = variables
+
+    mcc_1 = {
+        (t, pi): m.addConstr(
+            abh[t]
+            >= quicksum(
+                sbh[f] * x[t, f] - mbh[t] * w[t, f]
+                for f in set(F_t[t]).intersection(F_pi[pi])
+            )
+        )
+        for t in T_m
+        for pi in PI_m
+    }
+
+    mcc_2 = {
+        (f, t): m.addConstr(w[t, f] <= x[t, f])
+        for f in F
+        for t in set(T_f[f]).intersection(T_m)
+    }
+
+    mcc_3 = {
+        (f, t): m.addConstr(
+            w[t, f] <= quicksum(y[f, fd] for fd in F if (f, fd) in MO and t in T_f[fd])
+        )
+        for f in F
+        for t in set(T_f[f]).intersection(T_m)
+    }
+
+
 def generate_x_hat(m: Model, variables: list[dict[list[int], Var]], F, T):
     """
     Using the x values from the first optimization, generate x_hat values for the
     second optimization
     """
 
-    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
 
     x_hat = {}
 
@@ -603,12 +1060,40 @@ def generate_output(
     CF_f,
     n,
     fc,
+    T_m,
 ) -> None:
-    x, z, y, sigma, rho, phi, h, lambd, _, deltaA, deltaD, vA, vD, _, _, _ = variables
+    (
+        x,
+        z,
+        y,
+        sigma,
+        rho,
+        phi,
+        h,
+        lambd,
+        alpha,
+        deltaA,
+        deltaD,
+        vA,
+        vD,
+        gamma,
+        tao,
+        beta,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
+    ) = variables
 
     chained_flights = {}
 
     print(60 * "-")
+
+    ## GENERAL FLIGHT / TAIL ASSIGNMENT PRINTS ##
     print("\nFlight Information:")
     for f in F:
         found_chained_flight = False
@@ -650,6 +1135,7 @@ def generate_output(
             output += f"{DK_f[f]} ({round(std[f] + deltaD[f].x,1)}) -> {AK_f[f]} ({round(sta[f]+deltaA[f].x,1)}) \t"
         print(output)
 
+    ## FLIGHT CANCELLATION PRINTS ##
     cancelled = False
     cancelled_count = 0
     print("\nCancelled Flights:")
@@ -660,9 +1146,10 @@ def generate_output(
             cancelled_count += 1
     if not cancelled:
         print("No Flights Cancelled")
+    if cancelled:
+        print("\nTotal Flights Cancelled:", cancelled_count)
 
-    print("\nTotal Flights Cancelled:", cancelled_count)
-
+    ## DISRUPTED ITINERARY PRINTS ##
     disrupted_itins = False
     disrupted_passengers = 0
     disrupted_count = 0
@@ -673,28 +1160,36 @@ def generate_output(
             disrupted_count += 1
             print(f"I{P.index(p)} disrupted.")
 
-    print("\nTotal Disrupted Itineraries:", disrupted_count)
-
     if not disrupted_itins:
         print("No Itineraries Disrupted")
+    if disrupted_itins:
+        print("\nTotal Disrupted Itineraries:", disrupted_count)
 
+    ## REASSIGNMENT PRINTS ##
+    reassignments = False
     print("\nPassenger Reassignments:")
     for p in P:
         for pd in P:
             for v in Y:
                 if p != pd:
                     if int(h[P.index(p), P.index(pd), v].x) > 0:
+                        reassignments = True
                         print(
                             f"    I{P.index(p)} {*P[P.index(p)],} -> I{P.index(pd)} {*P[P.index(pd)],} (FC: {v}) people reassigned: {int(h[P.index(p), P.index(pd), v].x)}"
                         )
                         disrupted_passengers += int(h[P.index(p), P.index(pd), v].x)
+    if not reassignments:
+        print("No Passenger Reassignments")
 
-    total_passengers = sum([n[v, P.index(p)] for v in Y for p in P])
-    print(f"\nTotal Reassigned Passengers: {disrupted_passengers}")
-    print(
-        f"Percentage of Passengers Reassigned: {round(disrupted_passengers/total_passengers*100,2)}%"
-    )
+    if reassignments:
+        total_passengers = sum([n[v, P.index(p)] for v in Y for p in P])
+        print(f"\nTotal Reassigned Passengers: {disrupted_passengers}")
+        print(
+            f"Percentage of Passengers Reassigned: {round(disrupted_passengers/total_passengers*100,2)}%"
+        )
 
+    ## FLIGHT DELAY PRINTS ##
+    delays = False
     print("\nFlight Delays:")
     for f in F:
         if z[f].x < 0.1:
@@ -706,9 +1201,22 @@ def generate_output(
             if deltaD[f].x - deltaA[f].x > 1e-3:
                 out += f"-> Delay Absorbed: {round(deltaD[f].x - deltaA[f].x,2)}"
             if deltaA[f].x > 1e-5 or deltaD[f].x > 1e-5:
+                delays = True
                 print(out)
 
-    print("\nTotal Cost: ", round(m.objVal, 2))
+    if not delays:
+        print("No Flight Delays")
+
+    ## MAINTENANCE PRINTS ##
+    maintenace = len(T_m) > 0
+    print("\nMaintenance Schedule:")
+    for t in T_m:
+        print("Tail", t, "Maintenance:", (imt[t].x, fmt[t].x))
+
+    if not maintenace:
+        print("No Maintenance Scheduled")
+
+    print("\nTotal Cost:", round(m.objVal, 2))
 
     print("\n" + 60 * "-")
 

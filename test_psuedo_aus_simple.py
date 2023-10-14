@@ -29,6 +29,8 @@ K = AIRPORTS
 Y = range(num_fare_classes)
 Z = range(num_delay_levels)
 
+T_m = set()
+
 # This represents the different types of itineraries which will be generated, in this case
 # there are 5 itineraries of length 1, 3 of length 2 and 2 of length 3. NOTE: if a user
 # tries to generate an itinerary which is too long, a maximum recusion depth error will occur.
@@ -217,7 +219,7 @@ tb[(2, "SYD")] = 1
 def test_simple_limited_tails():
     limited_tails = Model("limited_tails_test")
 
-    variables = generate_variables(limited_tails, T, F, Y, Z, P, AA, DA, CO_p)
+    variables = generate_variables(limited_tails, T, F, Y, Z, P, AA, DA, CO_p, K)
     set_objective(
         limited_tails,
         variables,
@@ -277,9 +279,35 @@ def test_simple_limited_tails():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    x, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
+    (
+        x,
+        z,
+        y,
+        sigma,
+        rho,
+        phi,
+        h,
+        lambd,
+        alpha,
+        deltaA,
+        deltaD,
+        vA,
+        vD,
+        gamma,
+        tao,
+        beta,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
+    ) = variables
 
     # Cancellations occur as expected
     for f in F:

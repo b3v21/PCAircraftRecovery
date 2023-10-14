@@ -25,7 +25,6 @@ def test_basic_solve():
     num_airports = 3
     num_fare_classes = 2
     num_delay_levels = 2
-    num_time_instances = 8
 
     T = range(num_tails)
     F = range(num_flights)
@@ -37,22 +36,7 @@ def test_basic_solve():
     std = {f: f + 0.5 for f in F}
     sta = {f: f + 1 for f in F}
 
-    # MAINTENANCE DATA / SETS
-    PI = range(num_time_instances)
-    MO = set([(f, fd) for f in F for fd in F if f != fd])
-    F_pi = {
-        pi: [f for f in F if sta[f] <= (1 + pi) * (TIME_HORIZON / num_time_instances)]
-        for pi in PI
-    }
-    K_m = set([k for k in K])
-    T_m = set([])
-    PI_m = set([0, 1])
-
-    abh = {t: 20 for t in T}
-    sbh = {f: 20 for f in F}
-    mbh = {t: 40 for t in T}
-    mt = {t: 0.5 for t in T}
-    aw = {k: 1 for k in K}
+    T_m = set()
 
     DA = [(f, f + 1) for f in F]
     AA = [(f - 0.5, f + 0.5) for f in range(1, num_flights + 1)]
@@ -188,15 +172,6 @@ def test_basic_solve():
         basic_solve, variables, F, Z, P, sta, CO_p, lf, small_theta
     )
     beta_linearizing_constraints(basic_solve, variables, Y, Z, P, CO_p)
-    maintenance_schedule_constraints(
-        basic_solve, variables, T_m, sta, T_f, F, F_t, mt, MO, std
-    )
-    workshop_schedule_constraints(
-        basic_solve, variables, F_t, T_m, K_m, F, T_f, K, aw, FA_k
-    )
-    maintenance_check_constraints(
-        basic_solve, variables, T_m, PI_m, F_pi, sbh, mbh, F_t, MO, abh, F, T_f
-    )
 
     print("optimizing...")
     basic_solve.optimize()
@@ -275,6 +250,7 @@ def test_basic_reschedule_if_cheaper_tail():
     K = range(num_airports)
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
+
     T_m = set([])
 
     std = {f: f + 0.5 for f in F}
@@ -1229,14 +1205,14 @@ def test_basic_maintenance():
         _,
         _,
         _,
-        _,
-        _,
-        _,
-        _,
-        _,
-        _,
-        _,
-        _,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
     ) = variables
 
     # No flights cancelled and no itineraries disrupted
@@ -1244,3 +1220,6 @@ def test_basic_maintenance():
         assert z[f].x < 0.9
     for p in P:
         assert lambd[P.index(p)].x < 0.9
+
+    # Maintenance occurs on tail 0 during the times below
+    assert imt[0].x == 5.5 and fmt[0].x == 20.5

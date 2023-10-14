@@ -6,6 +6,7 @@ import numpy as np
 from math import floor
 
 random.seed(59)
+TIME_HORIZON = 72
 
 num_flights = floor(random.normalvariate(20, 1))
 flight_distribution = divide_number(num_flights, len(AIRPORTS), 0.25, 0.35)
@@ -33,10 +34,11 @@ print()
 
 def build_base_data() -> tuple:
     num_flights = graph.count_all_flights()
-    num_tails = 30
+    num_tails = 20
     num_airports = 10
     num_fare_classes = 2
     num_delay_levels = 5
+    num_time_instances = 8
 
     # Sets
     T = range(num_tails)
@@ -223,17 +225,40 @@ def build_base_data() -> tuple:
     P_sorted = sorted(P, key=len, reverse=True)
 
     tail_count = 0
-    for airport in K:
-        deperatures = FD_k[airport]
-        for deperature in deperatures:
-            for itin in P_sorted:
-                if (
-                    deperature in itin
-                    and itin.index(deperature) == 0
-                    and 1 not in [x_hat[(deperature, tail)] for tail in T]
-                ):
-                    tb[(tail_count, airport)] = 1
-                    tail_count += 1
+    for itin in P_sorted:
+        if itin:
+            airport = DK_f[itin[0]]
+            tb[(tail_count, airport)] = 1
+            tail_count += 1
+            if tail_count == num_tails:
+                break
+
+    # Create Maintenance data / sets
+    PI = range(num_time_instances)
+    MO = set(
+        [
+            (f, fd)
+            for f in F
+            for fd in F
+            if std[f] < std[fd]
+            and AK_f[f] == DK_f[fd]
+            and (AK_f[f] == "SYD" or AK_f[f] == "BNE")
+        ]
+    )
+    F_pi = {
+        pi: [f for f in F if sta[f] <= (1 + pi) * (TIME_HORIZON / num_time_instances)]
+        for pi in PI
+    }
+    K_m = {"SYD", "BNE"}
+    T_m = set()
+    PI_m = set(PI)
+
+    abh = {t: TIME_HORIZON for t in T}
+    sbh = {f: TIME_HORIZON for f in F}
+
+    mbh = {t: 14 * 24 for t in T}
+    mt = {t: 12 for t in T}
+    aw = {k: (lambda k: 5 if k == "SYD" or k == "BNE" else 0)(k) for k in K}
 
     print("remaining data created")
 
@@ -280,6 +305,17 @@ def build_base_data() -> tuple:
         kappa,
         x_hat,
         tb,
+        PI,
+        MO,
+        F_pi,
+        K_m,
+        T_m,
+        PI_m,
+        abh,
+        sbh,
+        mbh,
+        mt,
+        aw,
     )
 
 
@@ -334,9 +370,20 @@ def test_standard_solve():
         kappa,
         x_hat,
         tb,
+        PI,
+        MO,
+        F_pi,
+        K_m,
+        T_m,
+        PI_m,
+        abh,
+        sbh,
+        mbh,
+        mt,
+        aw,
     ) = build_base_data()
 
-    variables = generate_variables(standard_solve, T, F, Y, Z, P, AA, DA, CO_p)
+    variables = generate_variables(standard_solve, T, F, Y, Z, P, AA, DA, CO_p, K)
     set_objective(
         standard_solve,
         variables,
@@ -426,16 +473,48 @@ def test_standard_solve():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    _, z, _, _, _, _, _, lambd, _, _, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        _,
+        lambd,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
-    # Obj the same, no flights cancelled and no itineraries disrupted
+    # Obj the same, correct itins are disrupted and flights cancelled
     assert round(standard_solve.objVal, 2) == round(original_obj_val, 2)
     for f in F:
-        assert z[f].x < 0.9
+        if f == 12 or f == 14 or f == 17:
+            assert z[f].x > 0.9
+        else:
+            assert z[f].x < 0.9
     for p in P:
-        assert lambd[P.index(p)].x < 0.9
+        if P.index(p) == 5 or P.index(p) == 16 or P.index(p) == 18:
+            assert lambd[P.index(p)].x > 0.9
+        else:
+            assert lambd[P.index(p)].x < 0.9
 
 
 def test_reschedule_slot_cancel():
@@ -490,10 +569,21 @@ def test_reschedule_slot_cancel():
         kappa,
         x_hat,
         tb,
+        PI,
+        MO,
+        F_pi,
+        K_m,
+        T_m,
+        PI_m,
+        abh,
+        sbh,
+        mbh,
+        mt,
+        aw,
     ) = build_base_data()
 
     variables = generate_variables(
-        test_reschedule_slot_cancel, T, F, Y, Z, P, AA, DA, CO_p
+        test_reschedule_slot_cancel, T, F, Y, Z, P, AA, DA, CO_p, K
     )
     set_objective(
         test_reschedule_slot_cancel,
@@ -630,18 +720,50 @@ def test_reschedule_slot_cancel():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        h,
+        lambd,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     # Cancellations and reschedules occur as expected
     for f in F:
-        if f == 6 or f == 10:
+        if f == 6 or f == 10 or f == 12 or f == 14 or f == 17:
             assert z[f].x > 0.9
         else:
             assert z[f].x < 0.9
     for p in P:
-        if P.index(p) == 3 or P.index(p) == 7:
+        if (
+            P.index(p) == 3
+            or P.index(p) == 7
+            or P.index(p) == 5
+            or P.index(p) == 16
+            or P.index(p) == 18
+        ):
             assert lambd[P.index(p)].x > 0.9
         else:
             assert lambd[P.index(p)].x < 0.9
@@ -653,6 +775,9 @@ def test_reschedule_slot_cancel():
                         [
                             P.index(p) == 3 and P.index(pd) == 2,
                             P.index(p) == 7 and P.index(pd) == 1,
+                            P.index(p) == 5 and P.index(pd) == 0,
+                            P.index(p) == 16 and P.index(pd) == 15,
+                            P.index(p) == 18 and P.index(pd) == 0,
                         ]
                     ):
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
@@ -711,10 +836,21 @@ def test_reschedule_flight_cancel():
         kappa,
         x_hat,
         tb,
+        PI,
+        MO,
+        F_pi,
+        K_m,
+        T_m,
+        PI_m,
+        abh,
+        sbh,
+        mbh,
+        mt,
+        aw,
     ) = build_base_data()
 
     variables = generate_variables(
-        test_reschedule_flight_cancel, T, F, Y, Z, P, AA, DA, CO_p
+        test_reschedule_flight_cancel, T, F, Y, Z, P, AA, DA, CO_p, K
     )
     set_objective(
         test_reschedule_flight_cancel,
@@ -826,7 +962,33 @@ def test_reschedule_flight_cancel():
     print("optimizing...")
     test_reschedule_flight_cancel.setParam("OutputFlag", 1)
 
-    _, z, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        h,
+        lambd,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
+
     z[12].lb = 1
     z[12].ub = 1
 
@@ -850,17 +1012,43 @@ def test_reschedule_flight_cancel():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        h,
+        lambd,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     for f in F:
-        if f == 12:
+        if f == 12 or f == 14 or f == 17:
             assert z[f].x > 0.9
         else:
             assert z[f].x < 0.9
     for p in P:
-        if P.index(p) == 16:
+        if P.index(p) == 16 or P.index(p) == 18 or P.index(p) == 5:
             assert lambd[P.index(p)].x > 0.9
         else:
             assert lambd[P.index(p)].x < 0.9
@@ -868,7 +1056,11 @@ def test_reschedule_flight_cancel():
         for pd in P:
             if p != pd:
                 for v in Y:
-                    if P.index(p) == 16 and P.index(pd) == 15:
+                    if P.index(p) == 5 and P.index(pd) == 0:
+                        assert int(h[P.index(p), P.index(pd), v].x) == 50
+                    elif P.index(p) == 18 and P.index(pd) == 0:
+                        assert int(h[P.index(p), P.index(pd), v].x) == 50
+                    elif P.index(p) == 16 and P.index(pd) == 15:
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
                     elif P.index(p) == 22 and P.index(pd) == 0:
                         assert (int(h[P.index(p), P.index(pd), 1].x) == 40) or (
@@ -933,10 +1125,21 @@ def test_reschedule_airport_shutdown():
         kappa,
         x_hat,
         tb,
+        PI,
+        MO,
+        F_pi,
+        K_m,
+        T_m,
+        PI_m,
+        abh,
+        sbh,
+        mbh,
+        mt,
+        aw,
     ) = build_base_data()
 
     variables = generate_variables(
-        test_reschedule_airport_shutdown, T, F, Y, Z, P, AA, DA, CO_p
+        test_reschedule_airport_shutdown, T, F, Y, Z, P, AA, DA, CO_p, K
     )
     set_objective(
         test_reschedule_airport_shutdown,
@@ -1000,7 +1203,32 @@ def test_reschedule_airport_shutdown():
     original_obj_val = test_reschedule_airport_shutdown.objVal
 
     # Close down airport 'SYD' between hours 50 & 70:
-    _, _, _, _, _, _, _, _, _, deltaA, deltaD, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        h,
+        lambd,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     for node in graph.adj_list.keys():
         for neigh, flightid in graph.get_neighbours(node):
@@ -1080,17 +1308,51 @@ def test_reschedule_airport_shutdown():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        h,
+        lambd,
+        _,
+        deltaA,
+        deltaD,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     for f in F:
-        if f == 0 or f == 6:
+        if f == 0 or f == 6 or f == 12 or f == 14 or f == 17:
             assert z[f].x > 0.9
         else:
             assert z[f].x < 0.9
     for p in P:
-        if P.index(p) == 3 or P.index(p) == 11 or P.index(p) == 23 or P.index(p) == 21:
+        if (
+            P.index(p) == 3
+            or P.index(p) == 5
+            or P.index(p) == 11
+            or P.index(p) == 16
+            or P.index(p) == 18
+            or P.index(p) == 23
+            or P.index(p) == 21
+        ):
             assert lambd[P.index(p)].x > 0.9
         else:
             assert lambd[P.index(p)].x < 0.9
@@ -1101,11 +1363,368 @@ def test_reschedule_airport_shutdown():
                     if any(
                         [
                             P.index(p) == 3 and P.index(pd) == 2,
-                            P.index(p) == 21 and P.index(pd) == 0,
+                            P.index(p) == 5 and P.index(pd) == 0,
                             P.index(p) == 11 and P.index(pd) == 2,
+                            P.index(p) == 16 and P.index(pd) == 15,
+                            P.index(p) == 18 and P.index(pd) == 0,
+                            P.index(p) == 21 and P.index(pd) == 0,
                             P.index(p) == 23 and P.index(pd) == 0,
                         ]
                     ):
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
                     else:
                         assert int(h[P.index(p), P.index(pd), v].x) == 0
+
+
+def test_maintenance():
+    """
+    Generates the base data, runs a solve to get x_hat, and then runs another solve and confirms
+    the value is as expected and no rescheduling has to occur.
+    """
+
+    standard_solve_with_maintenance = Model("test_standard_solve_with_maintenance")
+
+    (
+        T,
+        F,
+        K,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        F_t,
+        T_f,
+        FA_k,
+        FD_k,
+        DK_f,
+        AK_f,
+        CF_f,
+        CO_p,
+        oc,
+        dc,
+        n,
+        q,
+        rc,
+        theta,
+        scA,
+        scD,
+        sb,
+        mtt,
+        mct,
+        ct,
+        CF_p,
+        lf,
+        small_theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+        tb,
+        PI,
+        MO,
+        F_pi,
+        K_m,
+        T_m,
+        PI_m,
+        abh,
+        sbh,
+        mbh,
+        mt,
+        aw,
+    ) = build_base_data()
+
+    variables = generate_variables(
+        standard_solve_with_maintenance, T, F, Y, Z, P, AA, DA, CO_p, K
+    )
+    set_objective(
+        standard_solve_with_maintenance,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+    )
+    flight_scheduling_constraints(standard_solve_with_maintenance, variables, F, T_f)
+    sequencing_and_fleet_size_constraints(
+        standard_solve_with_maintenance, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
+    )
+    passenger_flow_constraints(
+        standard_solve_with_maintenance, variables, F, Y, Z, P, T_f, CO_p, theta, n, q
+    )
+    airport_slot_constraints(
+        standard_solve_with_maintenance,
+        variables,
+        F,
+        Z,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        scA,
+        scD,
+    )
+    flight_delay_constraints(
+        standard_solve_with_maintenance, variables, T, F, T_f, CF_f, sb, mtt, ct
+    )
+    itinerary_feasibility_constraints(
+        standard_solve_with_maintenance, variables, F, P, sta, std, CF_p, mct
+    )
+    itinerary_delay_constraints(
+        standard_solve_with_maintenance, variables, F, Z, P, sta, CO_p, lf, small_theta
+    )
+    maintenance_schedule_constraints(
+        standard_solve_with_maintenance, variables, T_m, sta, T_f, F, F_t, mt, MO, std
+    )
+    workshop_schedule_constraints(
+        standard_solve_with_maintenance, variables, F_t, T_m, K_m, F, T_f, K, aw, FA_k
+    )
+    maintenance_check_constraints(
+        standard_solve_with_maintenance,
+        variables,
+        T_m,
+        PI_m,
+        F_pi,
+        sbh,
+        mbh,
+        F_t,
+        MO,
+        abh,
+        F,
+        T_f,
+    )
+    beta_linearizing_constraints(
+        standard_solve_with_maintenance, variables, Y, Z, P, CO_p
+    )
+
+    print("optimizing to get xhat...")
+    standard_solve_with_maintenance.setParam("OutputFlag", 0)
+    standard_solve_with_maintenance.optimize()
+
+    original_obj_val = standard_solve_with_maintenance.objVal
+
+    x_hat = generate_x_hat(standard_solve_with_maintenance, variables, F, T)
+    kappa = 1000
+
+    # Include tails that need maintenance for this test
+    T_m = {3, 10}
+
+    # get the time of the first flight that uses tail t
+    abh = {t: 0 for t in T}
+
+    # For each flight, find the time of the next flight that uses the same tail
+    next_f = {f: TIME_HORIZON for f in F}
+    for f, t in x_hat.keys():
+        if x_hat[(f, t)] == 1:
+            for fd in F:
+                if fd != f and x_hat[(fd, t)] == 1 and std[fd] > sta[f]:
+                    if std[fd] < next_f[f]:
+                        next_f[f] = std[fd]
+
+    sbh = {f: next_f[f] - sta[f] for f in F}
+
+    standard_solve_with_maintenance_2nd_run = Model(
+        "test_standard_solve_with_maintenance_2nd_run"
+    )
+
+    variables = generate_variables(
+        standard_solve_with_maintenance_2nd_run, T, F, Y, Z, P, AA, DA, CO_p, K
+    )
+    set_objective(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        F_t,
+        CO_p,
+        oc,
+        dc,
+        rc,
+        theta,
+        fc,
+        pc,
+        kappa,
+        x_hat,
+    )
+    flight_scheduling_constraints(
+        standard_solve_with_maintenance_2nd_run, variables, F, T_f
+    )
+    sequencing_and_fleet_size_constraints(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        T,
+        F,
+        K,
+        F_t,
+        T_f,
+        FD_k,
+        CF_f,
+        tb,
+    )
+    passenger_flow_constraints(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        F,
+        Y,
+        Z,
+        P,
+        T_f,
+        CO_p,
+        theta,
+        n,
+        q,
+    )
+    airport_slot_constraints(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        F,
+        Z,
+        sta,
+        std,
+        AA,
+        DA,
+        AAF,
+        DAF,
+        FAA,
+        FDA,
+        scA,
+        scD,
+    )
+    flight_delay_constraints(
+        standard_solve_with_maintenance_2nd_run, variables, T, F, T_f, CF_f, sb, mtt, ct
+    )
+    itinerary_feasibility_constraints(
+        standard_solve_with_maintenance_2nd_run, variables, F, P, sta, std, CF_p, mct
+    )
+    itinerary_delay_constraints(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        F,
+        Z,
+        P,
+        sta,
+        CO_p,
+        lf,
+        small_theta,
+    )
+    maintenance_schedule_constraints(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        T_m,
+        sta,
+        T_f,
+        F,
+        F_t,
+        mt,
+        MO,
+        std,
+    )
+    workshop_schedule_constraints(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        F_t,
+        T_m,
+        K_m,
+        F,
+        T_f,
+        K,
+        aw,
+        FA_k,
+    )
+    maintenance_check_constraints(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        T_m,
+        PI_m,
+        F_pi,
+        sbh,
+        mbh,
+        F_t,
+        MO,
+        abh,
+        F,
+        T_f,
+    )
+    beta_linearizing_constraints(
+        standard_solve_with_maintenance_2nd_run, variables, Y, Z, P, CO_p
+    )
+
+    print("optimizing...")
+    standard_solve_with_maintenance_2nd_run.setParam("OutputFlag", 1)
+    standard_solve_with_maintenance_2nd_run.optimize()
+
+    print("generating output...")
+    generate_output(
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        DK_f,
+        AK_f,
+        CF_f,
+        n,
+        fc,
+        T_m,
+    )
+
+    (
+        x,
+        z,
+        y,
+        sigma,
+        rho,
+        phi,
+        h,
+        lambd,
+        alpha,
+        deltaA,
+        deltaD,
+        vA,
+        vD,
+        gamma,
+        tao,
+        beta,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
+    ) = variables
+
+    # Maintenance occurs on the correct tails in the correct time window
+    assert round(imt[10].x, 2) == 38 and round(fmt[10].x, 2) == 50
+    assert round(imt[3].x, 2) == 42.4 and round(fmt[3].x, 2) == 54.4

@@ -1032,7 +1032,32 @@ def generate_x_hat(m: Model, variables: list[dict[list[int], Var]], F, T):
     second optimization
     """
 
-    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    (
+        x,
+        z,
+        y,
+        sigma,
+        rho,
+        phi,
+        h,
+        lambd,
+        alpha,
+        deltaA,
+        deltaD,
+        vA,
+        vD,
+        gamma,
+        tao,
+        beta,
+        imt,
+        fmt,
+        w,
+        sigma_m,
+        rho_m,
+        m_t,
+        m_m,
+        phi_m,
+    ) = variables
 
     x_hat = {}
 
@@ -1211,7 +1236,49 @@ def generate_output(
     maintenace = len(T_m) > 0
     print("\nMaintenance Schedule:")
     for t in T_m:
-        print("Tail", t, "Maintenance:", (imt[t].x, fmt[t].x))
+        if 1 in [x[t, f].x for f in F]:
+            prior_flight = [f for f in F if x[t, f].x and imt[t].x > sta[f]]
+            if len(prior_flight) > 0:
+                latter_flight = [
+                    fd
+                    for fd in F
+                    if x[t, fd].x
+                    and fd != prior_flight[0]
+                    and sta[prior_flight[0]] < std[fd]
+                ]
+                if len(latter_flight) > 0:
+                    prior_flight = f"F{prior_flight[0]}"
+                    latter_flight = f"F{latter_flight[0]}"
+                    print(
+                        "Tail",
+                        t,
+                        "Maintenance:",
+                        (round(imt[t].x, 2), round(fmt[t].x, 2)),
+                        "- Between",
+                        prior_flight,
+                        "and",
+                        latter_flight,
+                    )
+                else:
+                    print(
+                        "Tail",
+                        t,
+                        "Maintenance:",
+                        (round(imt[t].x, 2), round(fmt[t].x, 2)),
+                        "- After",
+                        f"F{prior_flight[0]}",
+                    )
+            else:
+                print(
+                    "Tail",
+                    t,
+                    "Maintenance:",
+                    (round(imt[t].x, 2), round(fmt[t].x, 2)),
+                    "- Before",
+                    f"F{[f for f in F if x[t, f].x == 1][0]}",
+                )
+        else:
+            print("Tail", t, f"Maintenance: None - (Tail {t} never reached SYD or BNE)")
 
     if not maintenace:
         print("No Maintenance Scheduled")

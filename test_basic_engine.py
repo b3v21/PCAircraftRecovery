@@ -275,6 +275,7 @@ def test_basic_reschedule_if_cheaper_tail():
     K = range(num_airports)
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
+    T_m = set([])
 
     std = {f: f + 0.5 for f in F}
     sta = {f: f + 1 for f in F}
@@ -362,7 +363,7 @@ def test_basic_reschedule_if_cheaper_tail():
     x_hat = {(f, t): 1 if t == f or t + 1 == f else 0 for f in F for t in T}
 
     variables = generate_variables(
-        basic_reschedule_if_cheaper_tail, T, F, Y, Z, P, AA, DA, CO_p
+        basic_reschedule_if_cheaper_tail, T, F, Y, Z, P, AA, DA, CO_p, K
     )
     set_objective(
         basic_reschedule_if_cheaper_tail,
@@ -440,9 +441,35 @@ def test_basic_reschedule_if_cheaper_tail():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    (
+        x,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     # Ensure cheaper flight is being used.
     assert x[1, 0].x == 1
@@ -472,6 +499,7 @@ def test_basic_reschedule_if_plane_cap_too_small():
     K = range(num_airports)
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
+    T_m = set([])
 
     std = {f: f + 0.5 for f in F}
     sta = {f: f + 1 for f in F}
@@ -574,7 +602,7 @@ def test_basic_reschedule_if_plane_cap_too_small():
     x_hat = {(0, 0): 1, (0, 1): 0, (1, 0): 1, (1, 1): 0}
 
     variables = generate_variables(
-        basic_reschedule_if_plane_cap_too_small, T, F, Y, Z, P, AA, DA, CO_p
+        basic_reschedule_if_plane_cap_too_small, T, F, Y, Z, P, AA, DA, CO_p, K
     )
     set_objective(
         basic_reschedule_if_plane_cap_too_small,
@@ -681,9 +709,35 @@ def test_basic_reschedule_if_plane_cap_too_small():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    x, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _ = variables
+    (
+        x,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     # Reassigns T0 -> T1 due to lack of capacity on T0.
     assert x[1, 0].x == 1
@@ -712,6 +766,7 @@ def test_passenger_itinerary_disruption():
     K = range(num_airports)
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
+    T_m = set([])
 
     std = {f: f + 0.5 for f in F}
     sta = {f: f + 1 for f in F}
@@ -804,7 +859,7 @@ def test_passenger_itinerary_disruption():
     x_hat = {(f, t): 1 if t == f or t + 1 == f else 0 for f in F for t in T}
 
     variables = generate_variables(
-        passenger_itinerary_disruption, T, F, Y, Z, P, AA, DA, CO_p
+        passenger_itinerary_disruption, T, F, Y, Z, P, AA, DA, CO_p, K
     )
     set_objective(
         passenger_itinerary_disruption,
@@ -882,9 +937,35 @@ def test_passenger_itinerary_disruption():
         CF_f,
         n,
         fc,
+        T_m,
     )
 
-    _, z, _, _, _, _, h, lambd, _, _, _, _, _, _, _, _ = variables
+    (
+        _,
+        z,
+        _,
+        _,
+        _,
+        _,
+        h,
+        lambd,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = variables
 
     # Cancellations and reschedules occur as expected
     for f in F:

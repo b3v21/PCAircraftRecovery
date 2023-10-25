@@ -1,6 +1,6 @@
 from gurobipy import *
 
-BIG_M = 999999999
+BIG_M = 1e6
 
 
 def generate_variables(

@@ -989,8 +989,8 @@ def test_reschedule_flight_cancel():
         _,
     ) = variables
 
-    z[12].lb = 1
-    z[12].ub = 1
+    z[2].lb = 1
+    z[2].ub = 1
 
     test_reschedule_flight_cancel.optimize()
 
@@ -1043,12 +1043,12 @@ def test_reschedule_flight_cancel():
     ) = variables
 
     for f in F:
-        if f == 12 or f == 14 or f == 17:
+        if f == 12 or f == 14 or f == 17 or f == 2:
             assert z[f].x > 0.9
         else:
             assert z[f].x < 0.9
     for p in P:
-        if P.index(p) == 16 or P.index(p) == 18 or P.index(p) == 5:
+        if P.index(p) == 16 or P.index(p) == 18 or P.index(p) == 5 or P.index(p) == 12:
             assert lambd[P.index(p)].x > 0.9
         else:
             assert lambd[P.index(p)].x < 0.9
@@ -1058,11 +1058,13 @@ def test_reschedule_flight_cancel():
                 for v in Y:
                     if P.index(p) == 5 and P.index(pd) == 0:
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
+                    elif P.index(p) == 12 and P.index(pd) == 21:
+                        assert int(h[P.index(p), P.index(pd), v].x) == 50
                     elif P.index(p) == 18 and P.index(pd) == 0:
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
                     elif P.index(p) == 16 and P.index(pd) == 15:
                         assert int(h[P.index(p), P.index(pd), v].x) == 50
-                    elif P.index(p) == 22 and P.index(pd) == 0:
+                    elif P.index(p) == 26 and P.index(pd) == 0:
                         assert (int(h[P.index(p), P.index(pd), 1].x) == 40) or (
                             int(h[P.index(p), P.index(pd), 0].x) == 40
                         )

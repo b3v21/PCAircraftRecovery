@@ -195,6 +195,15 @@ def test_basic_solve():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -418,6 +427,15 @@ def test_basic_reschedule_if_cheaper_tail():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -686,6 +704,15 @@ def test_basic_reschedule_if_plane_cap_too_small():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -914,6 +941,15 @@ def test_passenger_itinerary_disruption():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -1186,6 +1222,15 @@ def test_basic_maintenance():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (

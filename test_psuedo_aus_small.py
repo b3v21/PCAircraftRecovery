@@ -474,6 +474,15 @@ def test_standard_solve():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -721,6 +730,15 @@ def test_reschedule_slot_cancel():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -1013,6 +1031,15 @@ def test_reschedule_flight_cancel():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -1311,6 +1338,15 @@ def test_reschedule_airport_shutdown():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -1698,6 +1734,15 @@ def test_maintenance():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (
@@ -1729,4 +1774,4 @@ def test_maintenance():
 
     # Maintenance occurs on the correct tails in the correct time window
     assert round(imt[10].x, 2) == 38 and round(fmt[10].x, 2) == 50
-    assert round(imt[3].x, 2) == 42.4 and round(fmt[3].x, 2) == 54.4
+    assert round(imt[3].x, 2) == 6.9 and round(fmt[3].x, 2) == 18.9

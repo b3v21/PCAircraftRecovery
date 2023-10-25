@@ -32,7 +32,7 @@ def build_base_data() -> tuple:
     K = AIRPORTS
     Y = range(num_fare_classes)
     Z = range(num_delay_levels)
-    
+
     T_m = set()
 
     # RUN IF YOU WANT TO GENERATE ITINERARIES WITH NEW ITIN_CLASSES
@@ -271,7 +271,7 @@ def build_base_data() -> tuple:
             tail_count += 1
             if tail_count == num_tails:
                 break
-            
+
     # Create Maintenance data / sets
     PI = range(num_time_instances)
     MO = set(
@@ -468,5 +468,30 @@ def test_psuedo_aus_medium_size():
 
     print("generating output...")
     generate_output(
-        m, variables, T, F, Y, Z, P, sta, std, AA, DA, DK_f, AK_f, CF_f, n, fc, T_m
+        m,
+        variables,
+        T,
+        F,
+        Y,
+        Z,
+        P,
+        sta,
+        std,
+        AA,
+        DA,
+        DK_f,
+        AK_f,
+        CF_f,
+        n,
+        fc,
+        T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )

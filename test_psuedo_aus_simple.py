@@ -280,6 +280,15 @@ def test_simple_limited_tails():
         n,
         fc,
         T_m,
+        F_t,
+        oc,
+        dc,
+        CO_p,
+        rc,
+        theta,
+        pc,
+        kappa,
+        x_hat,
     )
 
     (

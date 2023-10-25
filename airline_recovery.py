@@ -1086,6 +1086,15 @@ def generate_output(
     n,
     fc,
     T_m,
+    F_t,
+    oc,
+    dc,
+    CO_p,
+    rc,
+    theta,
+    pc,
+    kappa,
+    x_hat,
 ) -> None:
     (
         x,
@@ -1284,6 +1293,58 @@ def generate_output(
         print("No Maintenance Scheduled")
 
     print("\nTotal Cost:", round(m.objVal, 2))
+
+    print("\nCost Breakdown:")
+    print(
+        "Flight Operation Cost:",
+        round(sum(oc[t, f] * x[t, f].x for t in T for f in F_t[t]), 2),
+    )
+    print("Increased Cruise Speed Cost:", round(sum(fc[f] * gamma[f].x for f in F), 2))
+    print("Flight Delay Costs:", round(sum(dc[f] * deltaA[f].x for f in F), 2))
+    print(
+        "Passenger Reaccomodation Costs:",
+        round(
+            sum(
+                rc[P.index(p), pd]
+                * (
+                    h[P.index(p), pd, v].x
+                    - sum(
+                        theta[v, P.index(p), pd, g] * beta[v, P.index(p), pd, g].x
+                        for g in Z
+                    )
+                )
+                for v in Y
+                for p in P
+                for pd in CO_p[P.index(p)]
+            ),
+            2,
+        ),
+    )
+    print(
+        "Passenger Delay Cost:",
+        round(
+            sum(
+                pc[g, P.index(p), pd] * beta[v, P.index(p), pd, g].x
+                for v in Y
+                for p in P
+                for pd in CO_p[P.index(p)]
+                for g in Z
+            ),
+            2,
+        ),
+    )
+    print(
+        "Tail Reassignment Penalty:",
+        round(
+            kappa
+            * sum(
+                x[t, f].x - 2 * x_hat[f, t] * x[t, f].x + x_hat[f, t]
+                for t in T
+                for f in F_t[t]
+            ),
+            2,
+        ),
+    )
 
     print("\n" + 60 * "-")
 

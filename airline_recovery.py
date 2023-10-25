@@ -532,6 +532,8 @@ def flight_delay_constraints(
     sb,
     mtt,
     ct,
+    sta,
+    std,
 ) -> None:
     """
     Flight Delay Constraints
@@ -572,7 +574,6 @@ def flight_delay_constraints(
 
     # relate the arrival delay of one flight to the departure delay of the next flight
     # operated by the same tail, by accounting for delay propagation.
-
     fdc_2 = {
         (f, fd, t): m.addConstr(
             deltaD[fd]
@@ -585,6 +586,10 @@ def flight_delay_constraints(
         for fd in CF_f[f]
         for t in set(T_f[f]).intersection(set(T_f[fd]))
     }
+
+    # Create an upper bound on the delay absorption through increased cruise speed based on the
+    # total flight duration.
+    fdc_3 = {f: m.addConstr(gamma[f] <= 0.2 * (sta[f] - std[f])) for f in F}
 
 
 def itinerary_feasibility_constraints(

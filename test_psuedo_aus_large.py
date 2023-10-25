@@ -430,7 +430,7 @@ def test_psuedo_aus_medium_size():
     airport_slot_constraints(
         m, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
     )
-    flight_delay_constraints(m, variables, T, F, T_f, CF_f, sb, mtt, ct)
+    flight_delay_constraints(m, variables, T, F, T_f, CF_f, sb, mtt, ct, sta, std)
     itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
     itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
     beta_linearizing_constraints(m, variables, Y, Z, P, CO_p)

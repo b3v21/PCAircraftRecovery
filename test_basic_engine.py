@@ -166,7 +166,9 @@ def test_basic_solve():
     airport_slot_constraints(
         basic_solve, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
     )
-    flight_delay_constraints(basic_solve, variables, T, F, T_f, CF_f, sb, mtt, ct)
+    flight_delay_constraints(
+        basic_solve, variables, T, F, T_f, CF_f, sb, mtt, ct, sta, std
+    )
     itinerary_feasibility_constraints(basic_solve, variables, F, P, sta, std, CF_p, mct)
     itinerary_delay_constraints(
         basic_solve, variables, F, Z, P, sta, CO_p, lf, small_theta
@@ -393,7 +395,17 @@ def test_basic_reschedule_if_cheaper_tail():
         scD,
     )
     flight_delay_constraints(
-        basic_reschedule_if_cheaper_tail, variables, T, F, T_f, CF_f, sb, mtt, ct
+        basic_reschedule_if_cheaper_tail,
+        variables,
+        T,
+        F,
+        T_f,
+        CF_f,
+        sb,
+        mtt,
+        ct,
+        sta,
+        std,
     )
     itinerary_feasibility_constraints(
         basic_reschedule_if_cheaper_tail, variables, F, P, sta, std, CF_p, mct
@@ -662,7 +674,17 @@ def test_basic_reschedule_if_plane_cap_too_small():
         scD,
     )
     flight_delay_constraints(
-        basic_reschedule_if_plane_cap_too_small, variables, T, F, T_f, CF_f, sb, mtt, ct
+        basic_reschedule_if_plane_cap_too_small,
+        variables,
+        T,
+        F,
+        T_f,
+        CF_f,
+        sb,
+        mtt,
+        ct,
+        sta,
+        std,
     )
     itinerary_feasibility_constraints(
         basic_reschedule_if_plane_cap_too_small, variables, F, P, sta, std, CF_p, mct
@@ -907,7 +929,17 @@ def test_passenger_itinerary_disruption():
         scD,
     )
     flight_delay_constraints(
-        passenger_itinerary_disruption, variables, T, F, T_f, CF_f, sb, mtt, ct
+        passenger_itinerary_disruption,
+        variables,
+        T,
+        F,
+        T_f,
+        CF_f,
+        sb,
+        mtt,
+        ct,
+        sta,
+        std,
     )
     itinerary_feasibility_constraints(
         passenger_itinerary_disruption, variables, F, P, sta, std, CF_p, mct
@@ -1182,7 +1214,9 @@ def test_basic_maintenance():
         scA,
         scD,
     )
-    flight_delay_constraints(basic_maintenance, variables, T, F, T_f, CF_f, sb, mtt, ct)
+    flight_delay_constraints(
+        basic_maintenance, variables, T, F, T_f, CF_f, sb, mtt, ct, sta, std
+    )
     itinerary_feasibility_constraints(
         basic_maintenance, variables, F, P, sta, std, CF_p, mct
     )

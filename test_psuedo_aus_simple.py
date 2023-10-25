@@ -249,7 +249,9 @@ def test_simple_limited_tails():
     airport_slot_constraints(
         limited_tails, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
     )
-    flight_delay_constraints(limited_tails, variables, T, F, T_f, CF_f, sb, mtt, ct)
+    flight_delay_constraints(
+        limited_tails, variables, T, F, T_f, CF_f, sb, mtt, ct, sta, std
+    )
     itinerary_feasibility_constraints(
         limited_tails, variables, F, P, sta, std, CF_p, mct
     )

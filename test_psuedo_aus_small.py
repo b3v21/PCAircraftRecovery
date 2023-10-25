@@ -413,7 +413,9 @@ def test_standard_solve():
     airport_slot_constraints(
         standard_solve, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
     )
-    flight_delay_constraints(standard_solve, variables, T, F, T_f, CF_f, sb, mtt, ct)
+    flight_delay_constraints(
+        standard_solve, variables, T, F, T_f, CF_f, sb, mtt, ct, sta, std
+    )
     itinerary_feasibility_constraints(
         standard_solve, variables, F, P, sta, std, CF_p, mct
     )
@@ -637,7 +639,7 @@ def test_reschedule_slot_cancel():
         scD,
     )
     flight_delay_constraints(
-        test_reschedule_slot_cancel, variables, T, F, T_f, CF_f, sb, mtt, ct
+        test_reschedule_slot_cancel, variables, T, F, T_f, CF_f, sb, mtt, ct, sta, std
     )
     itinerary_feasibility_constraints(
         test_reschedule_slot_cancel, variables, F, P, sta, std, CF_p, mct
@@ -913,7 +915,7 @@ def test_reschedule_flight_cancel():
         scD,
     )
     flight_delay_constraints(
-        test_reschedule_flight_cancel, variables, T, F, T_f, CF_f, sb, mtt, ct
+        test_reschedule_flight_cancel, variables, T, F, T_f, CF_f, sb, mtt, ct, sta, std
     )
     itinerary_feasibility_constraints(
         test_reschedule_flight_cancel, variables, F, P, sta, std, CF_p, mct
@@ -1213,7 +1215,17 @@ def test_reschedule_airport_shutdown():
         scD,
     )
     flight_delay_constraints(
-        test_reschedule_airport_shutdown, variables, T, F, T_f, CF_f, sb, mtt, ct
+        test_reschedule_airport_shutdown,
+        variables,
+        T,
+        F,
+        T_f,
+        CF_f,
+        sb,
+        mtt,
+        ct,
+        sta,
+        std,
     )
     itinerary_feasibility_constraints(
         test_reschedule_airport_shutdown, variables, F, P, sta, std, CF_p, mct
@@ -1524,7 +1536,17 @@ def test_maintenance():
         scD,
     )
     flight_delay_constraints(
-        standard_solve_with_maintenance, variables, T, F, T_f, CF_f, sb, mtt, ct
+        standard_solve_with_maintenance,
+        variables,
+        T,
+        F,
+        T_f,
+        CF_f,
+        sb,
+        mtt,
+        ct,
+        sta,
+        std,
     )
     itinerary_feasibility_constraints(
         standard_solve_with_maintenance, variables, F, P, sta, std, CF_p, mct
@@ -1653,7 +1675,17 @@ def test_maintenance():
         scD,
     )
     flight_delay_constraints(
-        standard_solve_with_maintenance_2nd_run, variables, T, F, T_f, CF_f, sb, mtt, ct
+        standard_solve_with_maintenance_2nd_run,
+        variables,
+        T,
+        F,
+        T_f,
+        CF_f,
+        sb,
+        mtt,
+        ct,
+        sta,
+        std,
     )
     itinerary_feasibility_constraints(
         standard_solve_with_maintenance_2nd_run, variables, F, P, sta, std, CF_p, mct

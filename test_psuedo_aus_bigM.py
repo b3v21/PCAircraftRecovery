@@ -11,19 +11,15 @@ import json
 longrun = pytest.mark.skipif("not config.getoption('longrun')")
 random.seed(69)
 
-# BOTH TESTS HERE HAVE A SMALL DISRUPTION WHICH
-# DELAYS FLIGHT 41 BY 320 MINUTES
-
-
 def build_base_data() -> tuple:
-    graph_nodes = floor(random.normalvariate(123, 10))
+    graph_nodes = floor(random.normalvariate(50, 10))
     flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
     graph = create_graph(flight_distribution)
     num_flights = graph.count_all_flights()
     print("graph created")
 
-    num_tails = 123  # This is somewhat arbitrary
+    num_tails = 50  # This is somewhat arbitrary
     num_airports = 10
     num_fare_classes = 4  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
@@ -360,8 +356,8 @@ def build_base_data() -> tuple:
 
 
 @longrun
-def test_psuedo_aus_medium_size():
-    m = Model("airline recovery aus medium")
+def test_psuedo_aus_bigM():
+    m = Model("airline recovery aus bigM")
 
     (
         T,
@@ -628,250 +624,3 @@ def test_psuedo_aus_medium_size():
         x_hat,
     )
 
-
-@longrun
-def test_psuedo_aus_medium_without_phantom():
-    m = Model("airline recovery aus medium")
-
-    (
-        T,
-        F,
-        K,
-        Y,
-        Z,
-        P,
-        sta,
-        std,
-        AA,
-        DA,
-        AAF,
-        DAF,
-        FAA,
-        FDA,
-        F_t,
-        T_f,
-        FA_k,
-        FD_k,
-        DK_f,
-        AK_f,
-        CF_f,
-        CO_p,
-        oc,
-        dc,
-        n,
-        q,
-        rc,
-        theta,
-        scA,
-        scD,
-        sb,
-        mtt,
-        mct,
-        ct,
-        CF_p,
-        lf,
-        small_theta,
-        fc,
-        pc,
-        kappa,
-        x_hat,
-        tb,
-        PI,
-        MO,
-        F_pi,
-        K_m,
-        T_m,
-        PI_m,
-        abh,
-        sbh,
-        mbh,
-        mt,
-        aw,
-    ) = build_base_data()
-
-    # Set phantom rates to 0
-    theta = {
-        (y, P.index(p), P.index(pd), z): 0 for y in Y for p in P for pd in P for z in Z
-    }
-
-    variables = generate_variables(m, T, F, Y, Z, P, AA, DA, CO_p, K)
-    set_objective(
-        m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
-    )
-    # flight_scheduling_constraints(m, variables, F, T_f)
-    sequencing_and_fleet_size_constraints(
-        m, variables, T, F, K, F_t, T_f, FD_k, CF_f, tb
-    )
-    passenger_flow_constraints(m, variables, F, Y, Z, P, T_f, CO_p, theta, n, q)
-    airport_slot_constraints(
-        m, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
-    )
-    flight_delay_constraints(m, variables, T, F, T_f, CF_f, sb, mtt, ct)
-    itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
-    itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
-    beta_linearizing_constraints(m, variables, Y, Z, P, CO_p)
-    maintenance_schedule_constraints(
-        m,
-        variables,
-        T_m,
-        sta,
-        T_f,
-        F,
-        F_t,
-        mt,
-        MO,
-        std,
-    )
-    workshop_schedule_constraints(
-        m,
-        variables,
-        F_t,
-        T_m,
-        K_m,
-        F,
-        T_f,
-        K,
-        aw,
-        FA_k,
-    )
-    maintenance_check_constraints(
-        m,
-        variables,
-        T_m,
-        PI_m,
-        F_pi,
-        sbh,
-        mbh,
-        F_t,
-        MO,
-        abh,
-        F,
-        T_f,
-    )
-
-    (
-        x,
-        z,
-        y,
-        sigma,
-        rho,
-        phi,
-        h,
-        lambd,
-        alpha,
-        deltaA,
-        deltaD,
-        vA,
-        vD,
-        gamma,
-        tao,
-        beta,
-        imt,
-        fmt,
-        w,
-        sigma_m,
-        rho_m,
-        m_t,
-        m_m,
-        phi_m,
-    ) = variables
-
-    print("optimizing to get xhat...")
-    m.setParam("OutputFlag", 1)
-    m.setParam("MIPGap", 0.01)
-    m.optimize()
-
-    x_hat = generate_x_hat(m, variables, F, T)
-    deltaA[41].lb = 320 / 60
-
-    kappa = 1000
-
-    # Generate new data
-    AAF = {f: [i for i, slot in enumerate(AA) if sta[f] <= slot[0]] for f in F}
-    DAF = {f: [i for i, slot in enumerate(DA) if std[f] <= slot[0]] for f in F}
-
-    FAA = {asl: [f for f in F if sta[f] <= asl[0]] for asl in AA}
-    FDA = {dsl: [f for f in F if std[f] <= dsl[0]] for dsl in DA}
-
-    print("Regenerate neccecary constraints...")
-    airport_slot_constraints(
-        m, variables, F, Z, sta, std, AA, DA, AAF, DAF, FAA, FDA, scA, scD
-    )
-    itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
-    itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
-    maintenance_schedule_constraints(
-        m,
-        variables,
-        T_m,
-        sta,
-        T_f,
-        F,
-        F_t,
-        mt,
-        MO,
-        std,
-    )
-    workshop_schedule_constraints(
-        m,
-        variables,
-        F_t,
-        T_m,
-        K_m,
-        F,
-        T_f,
-        K,
-        aw,
-        FA_k,
-    )
-    maintenance_check_constraints(
-        m,
-        variables,
-        T_m,
-        PI_m,
-        F_pi,
-        sbh,
-        mbh,
-        F_t,
-        MO,
-        abh,
-        F,
-        T_f,
-    )
-    set_objective(
-        m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
-    )
-
-    print("optimizing...")
-    m.setParam("OutputFlag", 1)
-    m.setParam("MIPGap", 0.01)
-    m.optimize()
-
-    print("generating output...")
-    generate_output(
-        m,
-        variables,
-        T,
-        F,
-        Y,
-        Z,
-        P,
-        sta,
-        std,
-        AA,
-        DA,
-        DK_f,
-        AK_f,
-        CF_f,
-        n,
-        fc,
-        T_m,
-        F_t,
-        oc,
-        dc,
-        CO_p,
-        rc,
-        theta,
-        pc,
-        kappa,
-        x_hat,
-    )

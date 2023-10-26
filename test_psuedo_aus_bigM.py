@@ -12,14 +12,14 @@ longrun = pytest.mark.skipif("not config.getoption('longrun')")
 random.seed(69)
 
 def build_base_data() -> tuple:
-    graph_nodes = floor(random.normalvariate(50, 10))
+    graph_nodes = floor(random.normalvariate(40, 10))
     flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
     graph = create_graph(flight_distribution)
     num_flights = graph.count_all_flights()
     print("graph created")
 
-    num_tails = 50  # This is somewhat arbitrary
+    num_tails = 40  # This is somewhat arbitrary
     num_airports = 10
     num_fare_classes = 4  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
@@ -33,8 +33,8 @@ def build_base_data() -> tuple:
     Z = range(num_delay_levels)
 
     # RUN IF YOU WANT TO GENERATE ITINERARIES WITH NEW ITIN_CLASSES
-    # itin_classes = {1: num_flights, 2: 20, 3: 5}
-    # P = gen_new_itins(graph, num_flights, INSERT SAVE FILE NAME HERE, itin_classes)
+    itin_classes = {1: num_flights}
+    P = gen_new_itins(graph, num_flights, "bigM_itins", itin_classes)
 
     # DEBUG GRAPH PRINTS
     print("Graph")
@@ -44,8 +44,8 @@ def build_base_data() -> tuple:
     print()
 
     # Read saved itineraries
-    with open("./data/medium_itins.txt", "r") as f:
-        P = json.loads(f.read())
+    # with open("./data/medium_itins.txt", "r") as f:
+    #     P = json.loads(f.read())
 
     print("\nitineraries used:")
     print(P, "\n")
@@ -498,12 +498,21 @@ def test_psuedo_aus_bigM():
     ) = variables
 
     print("optimizing to get xhat...")
+    
+    m.setParam("TuneTimeLimit", 900)
+    m.setParam("TuneTrials", 5)
+    
+    m.tune()
+    for i in range(m.tuneResultCount):
+        m.getTuneResult(i)
+        m.write('tune'+str(i)+'.prm')
+        
     m.setParam("OutputFlag", 1)
     m.setParam("MIPGap", 0.01)
+
     m.optimize()
 
     x_hat = generate_x_hat(m, variables, F, T)
-    deltaA[41].lb = 320 / 60
     kappa = 1000
 
     # Generate new data

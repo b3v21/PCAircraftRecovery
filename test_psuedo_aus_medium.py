@@ -503,6 +503,8 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing to get xhat...")
     m.setParam("OutputFlag", 1)
+    m.setParam("CutPasses", 3)
+    m.setParam("Heuristics", 0)
     m.setParam("MIPGap", 0.01)
     m.optimize()
 
@@ -567,6 +569,8 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
+    m.setParam("CutPasses", 3)
+    m.setParam("Heuristics", 0)
     m.setParam("MIPGap", 0.01)
 
     (

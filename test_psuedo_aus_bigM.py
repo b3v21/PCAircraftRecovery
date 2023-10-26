@@ -12,14 +12,14 @@ longrun = pytest.mark.skipif("not config.getoption('longrun')")
 random.seed(69)
 
 def build_base_data() -> tuple:
-    graph_nodes = floor(random.normalvariate(40, 10))
+    graph_nodes = floor(random.normalvariate(80, 10))
     flight_distribution = divide_number(graph_nodes, len(AIRPORTS), 0.25, 0.35)
 
     graph = create_graph(flight_distribution)
     num_flights = graph.count_all_flights()
     print("graph created")
 
-    num_tails = 40  # This is somewhat arbitrary
+    num_tails = 80  # This is somewhat arbitrary
     num_airports = 10
     num_fare_classes = 4  # This is somewhat arbitrary
     num_delay_levels = 5  # This is somewhat arbitrary
@@ -499,8 +499,8 @@ def test_psuedo_aus_bigM():
 
     print("optimizing to get xhat...")
     
-    m.setParam("TuneTimeLimit", 900)
-    m.setParam("TuneTrials", 5)
+    m.setParam('TuneTimeLimit', 900)
+    m.setParam('TuneTrials', 5)
     
     m.tune()
     for i in range(m.tuneResultCount):
@@ -572,6 +572,8 @@ def test_psuedo_aus_bigM():
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
+    
+    
     m.setParam("MIPGap", 0.01)
 
     (

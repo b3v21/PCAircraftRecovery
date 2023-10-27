@@ -5,7 +5,7 @@ https://pubsonline.informs.org/doi/10.1287/trsc.2022.1174
 
 # File Navigation #
 - Model construction can be found in `./airline_recovery.py`
-- All data files can be found in `./data` (although note) that some data is built within the testfiles for psuedo_aus tests
+- All data files can be found in `./data`, although note that some data is built within the testfiles for psuedo_aus tests
 - Tests can be found in all files starting with 'test_' and can be ran using the pytest commands below
 
 # Test Instructions #

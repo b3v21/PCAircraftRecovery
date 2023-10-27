@@ -13,10 +13,9 @@
 
 # AIRLINE: RANTAS (Rantas Airlines) (Not associated or inspired by QANTAS in any way)
 # NOTES:
-#   * ALL MAINTENANCE IS DONE IN SYD
+#   * ALL MAINTENANCE IS DONE IN SYD AND BNE
 #   * IS IT ASSUMED ALL PLANES FLY TO EACHOTHER BUT A lARGE
 #     PORTION OF FLIGHTS FLY ARE O.T.F: X --> SYD and SYD --> X
-#   * AIM FOR ~1000 FLIGHTS OVER A 3 DAY PERIOD
 #   * FLIGHT TIME WILL BE GENERATED FROM A NORMAL DISTRIBUTION
 #     WITH A MEAN & STANDARD DEVIATION BASED OFF THE DISTANCE OF NODES
 #########################################################################################

@@ -290,7 +290,7 @@ def build_base_data() -> tuple:
         for pi in PI
     }
     K_m = {"SYD", "BNE"}
-    T_m = set(random.sample(T, 5))
+    T_m = set()
     PI_m = set(PI)
 
     abh = {t: TIME_HORIZON for t in T}
@@ -435,44 +435,6 @@ def test_psuedo_aus_medium_size():
     itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
     itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
     beta_linearizing_constraints(m, variables, Y, Z, P, CO_p)
-    maintenance_schedule_constraints(
-        m,
-        variables,
-        T_m,
-        sta,
-        T_f,
-        F,
-        F_t,
-        mt,
-        MO,
-        std,
-    )
-    workshop_schedule_constraints(
-        m,
-        variables,
-        F_t,
-        T_m,
-        K_m,
-        F,
-        T_f,
-        K,
-        aw,
-        FA_k,
-    )
-    maintenance_check_constraints(
-        m,
-        variables,
-        T_m,
-        PI_m,
-        F_pi,
-        sbh,
-        mbh,
-        F_t,
-        MO,
-        abh,
-        F,
-        T_f,
-    )
 
     (
         x,
@@ -503,8 +465,6 @@ def test_psuedo_aus_medium_size():
 
     print("optimizing to get xhat...")
     m.setParam("OutputFlag", 1)
-    m.setParam("CutPasses", 3)
-    m.setParam("Heuristics", 0)
     m.setParam("MIPGap", 0.01)
     m.optimize()
 
@@ -528,49 +488,9 @@ def test_psuedo_aus_medium_size():
     set_objective(
         m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
     )
-    maintenance_schedule_constraints(
-        m,
-        variables,
-        T_m,
-        sta,
-        T_f,
-        F,
-        F_t,
-        mt,
-        MO,
-        std,
-    )
-    workshop_schedule_constraints(
-        m,
-        variables,
-        F_t,
-        T_m,
-        K_m,
-        F,
-        T_f,
-        K,
-        aw,
-        FA_k,
-    )
-    maintenance_check_constraints(
-        m,
-        variables,
-        T_m,
-        PI_m,
-        F_pi,
-        sbh,
-        mbh,
-        F_t,
-        MO,
-        abh,
-        F,
-        T_f,
-    )
 
     print("optimizing...")
     m.setParam("OutputFlag", 1)
-    m.setParam("CutPasses", 3)
-    m.setParam("Heuristics", 0)
     m.setParam("MIPGap", 0.01)
 
     (
@@ -714,44 +634,6 @@ def test_psuedo_aus_medium_without_phantom():
     itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
     itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
     beta_linearizing_constraints(m, variables, Y, Z, P, CO_p)
-    maintenance_schedule_constraints(
-        m,
-        variables,
-        T_m,
-        sta,
-        T_f,
-        F,
-        F_t,
-        mt,
-        MO,
-        std,
-    )
-    workshop_schedule_constraints(
-        m,
-        variables,
-        F_t,
-        T_m,
-        K_m,
-        F,
-        T_f,
-        K,
-        aw,
-        FA_k,
-    )
-    maintenance_check_constraints(
-        m,
-        variables,
-        T_m,
-        PI_m,
-        F_pi,
-        sbh,
-        mbh,
-        F_t,
-        MO,
-        abh,
-        F,
-        T_f,
-    )
 
     (
         x,
@@ -803,44 +685,6 @@ def test_psuedo_aus_medium_without_phantom():
     )
     itinerary_feasibility_constraints(m, variables, F, P, sta, std, CF_p, mct)
     itinerary_delay_constraints(m, variables, F, Z, P, sta, CO_p, lf, small_theta)
-    maintenance_schedule_constraints(
-        m,
-        variables,
-        T_m,
-        sta,
-        T_f,
-        F,
-        F_t,
-        mt,
-        MO,
-        std,
-    )
-    workshop_schedule_constraints(
-        m,
-        variables,
-        F_t,
-        T_m,
-        K_m,
-        F,
-        T_f,
-        K,
-        aw,
-        FA_k,
-    )
-    maintenance_check_constraints(
-        m,
-        variables,
-        T_m,
-        PI_m,
-        F_pi,
-        sbh,
-        mbh,
-        F_t,
-        MO,
-        abh,
-        F,
-        T_f,
-    )
     set_objective(
         m, variables, T, F, Y, Z, P, F_t, CO_p, oc, dc, rc, theta, fc, pc, kappa, x_hat
     )

@@ -13,3 +13,5 @@ https://pubsonline.informs.org/doi/10.1287/trsc.2022.1174
 - From the root directory run `pytest TESTFILE -s` to run particular test files with output. 
 - Additionally add `-k TESTNAME` to run specific tests within a test file, these are seperated into functions within the test files.
 
+# Note #
+Some of the tests may appear to Fail, this is due to the solution varying (with the same optimal value) between machines with different finger prints. 
